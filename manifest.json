@@ -11,9 +11,8 @@
     "storage",
     "activeTab",
     "windows",
-    "sessions",
-    "management",
-    "bookmarks"
+    "bookmarks",
+    "scripting"
   ],
   "icons": {
     "16": "icons/icon16.png",
@@ -33,16 +32,11 @@
   "background": {
     "service_worker": "background.js"
   },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
-    }
-  ],
+  "content_scripts": [],
   "web_accessible_resources": [
     {
-      "resources": ["img/*", "icons/*", "*.png", "*.svg", "*.ico", "i18n.js"],
-      "matches": ["<all_urls>"]
+      "resources": ["icons/*", "*.png", "*.svg"],
+      "matches": ["*://*/*"]
     }
   ]
 }

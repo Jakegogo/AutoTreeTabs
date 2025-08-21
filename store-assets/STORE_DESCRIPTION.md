@@ -104,7 +104,7 @@
 
 如果您在使用过程中遇到任何问题或有改进建议，欢迎通过以下方式联系我们：
 - GitHub Issues: https://github.com/Jakegogo/AutoTreeTabs
-- 邮箱: your-email@example.com
+- 邮箱: jakegogogo@gmail.com
 
 让 Auto Tree Tabs 成为您高效浏览的得力助手！🚀
 

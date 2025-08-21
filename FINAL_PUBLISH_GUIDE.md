@@ -75,8 +75,8 @@ open generate-icons.html
 
 #### **重要链接**
 - **官网**: https://github.com/Jakegogo/AutoTreeTabs
-- **隐私政策URL**: 需要将隐私政策上传到公开URL
-- **支持邮箱**: 请提供有效邮箱地址
+- **隐私政策URL**: https://github.com/Jakegogo/AutoTreeTabs/blob/main/store-assets/PRIVACY_POLICY.md
+- **支持邮箱**: jakegogogo@gmail.com
 
 ## 🎨 **商店展示优化建议**
 
