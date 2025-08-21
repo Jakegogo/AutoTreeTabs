@@ -1,0 +1,280 @@
+{
+  "appName": {
+    "message": "Auto Tree Tabs",
+    "description": "확장 프로그램 이름"
+  },
+  "appDesc": {
+    "message": "혼란스러운 탭에서 해방되세요! 좋은 아이디어에는 좋은 정리가 필요합니다.",
+    "description": "확장 프로그램 설명"
+  },
+  
+  "searchPlaceholder": {
+    "message": "탭 검색...",
+    "description": "검색 입력 자리표시자"
+  },
+  "clearSearchBtn": {
+    "message": "검색 지우기",
+    "description": "검색 지우기 버튼"
+  },
+  "backBtn": {
+    "message": "뒤로",
+    "description": "뒤로 버튼"
+  },
+  "forwardBtn": {
+    "message": "앞으로",
+    "description": "앞으로 버튼"
+  },
+  "exportBtn": {
+    "message": "내보내기",
+    "description": "내보내기 버튼"
+  },
+  "organizeBtn": {
+    "message": "정리",
+    "description": "자동 정리 버튼"
+  },
+  
+  "window": {
+    "message": "창",
+    "description": "창 레이블"
+  },
+  "tabs": {
+    "message": "개 탭",
+    "description": "탭 개수"
+  },
+  "tab": {
+    "message": "개 탭",
+    "description": "단일 탭"
+  },
+  
+  "pdfFile": {
+    "message": "PDF 파일",
+    "description": "PDF 파일 타입"
+  },
+  "htmlFile": {
+    "message": "HTML 파일",
+    "description": "HTML 파일 타입"
+  },
+  "imageFile": {
+    "message": "이미지 파일",
+    "description": "이미지 파일 타입"
+  },
+  
+  "bookmarked": {
+    "message": "북마크됨",
+    "description": "북마크 상태"
+  },
+  "audible": {
+    "message": "오디오 재생 중",
+    "description": "오디오 재생 상태"
+  },
+  "muted": {
+    "message": "음소거됨",
+    "description": "음소거 상태"
+  },
+  "pinned": {
+    "message": "고정됨",
+    "description": "고정 탭 상태"
+  },
+  
+  "settingsTitle": {
+    "message": "Auto Tree Tabs 설정",
+    "description": "설정 페이지 제목"
+  },
+  "generalSettings": {
+    "message": "일반 설정",
+    "description": "일반 설정 섹션"
+  },
+  "enableScrollRestore": {
+    "message": "스크롤 위치 복원 활성화",
+    "description": "스크롤 복원 설정"
+  },
+  "enableScrollRestoreDesc": {
+    "message": "탭으로 돌아갈 때 스크롤 위치를 자동으로 복원",
+    "description": "스크롤 복원 설명"
+  },
+  "enableAutoOrganize": {
+    "message": "자동 정리 활성화",
+    "description": "자동 정리 설정"
+  },
+  "enableAutoOrganizeDesc": {
+    "message": "팝업을 열 때 도메인별로 탭을 자동 정리",
+    "description": "자동 정리 설명"
+  },
+  "clearAllData": {
+    "message": "모든 데이터 지우기",
+    "description": "데이터 지우기 버튼"
+  },
+  "clearAllDataDesc": {
+    "message": "기록과 설정을 포함한 모든 확장 프로그램 데이터 지우기",
+    "description": "데이터 지우기 설명"
+  },
+  "clearAllDataConfirm": {
+    "message": "모든 데이터를 지우시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    "description": "데이터 지우기 확인"
+  },
+  "dataCleared": {
+    "message": "모든 데이터가 지워졌습니다",
+    "description": "데이터 지워짐 메시지"
+  },
+  "settingsSaved": {
+    "message": "설정이 저장되었습니다",
+    "description": "설정 저장 메시지"
+  },
+  
+  "exportTitle": {
+    "message": "탭 트리 내보내기",
+    "description": "내보내기 대화상자 제목"
+  },
+  "exportSuccess": {
+    "message": "탭 트리 내보내기 성공",
+    "description": "내보내기 성공 메시지"
+  },
+  "exportError": {
+    "message": "내보내기 실패",
+    "description": "내보내기 오류 메시지"
+  },
+  
+  "navigationTitle": {
+    "message": "탭 내비게이션",
+    "description": "내비게이션 섹션 제목"
+  },
+  "noHistory": {
+    "message": "내비게이션 기록이 없습니다",
+    "description": "기록 없음 메시지"
+  },
+  
+  "searchResults": {
+    "message": "검색 결과",
+    "description": "검색 결과 섹션"
+  },
+  "noSearchResults": {
+    "message": "일치하는 탭을 찾을 수 없습니다",
+    "description": "검색 결과 없음 메시지"
+  },
+  "searchResultsCount": {
+    "message": "$count$개의 탭을 찾았습니다",
+    "description": "검색 결과 수",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  
+  "organizeSuccess": {
+    "message": "탭 정리 성공",
+    "description": "정리 성공 메시지"
+  },
+  "organizeError": {
+    "message": "탭 정리 실패",
+    "description": "정리 오류 메시지"
+  },
+  "organizing": {
+    "message": "탭 정리 중...",
+    "description": "정리 진행 중"
+  },
+  
+  "feature1Title": {
+    "message": "트리 구조로 쉬운 관리",
+    "description": "기능 1 제목"
+  },
+  "feature1Desc": {
+    "message": "명확한 계층 구조 표시로 혼란스러운 탭 배열에 작별",
+    "description": "기능 1 설명"
+  },
+  "feature2Title": {
+    "message": "원클릭 스마트 정리",
+    "description": "기능 2 제목"
+  },
+  "feature2Desc": {
+    "message": "도메인과 서브도메인으로 자동 정렬, 관련 사이트가 자동으로 그룹화",
+    "description": "기능 2 설명"
+  },
+  "feature3Title": {
+    "message": "작업공간 내보내기 기능",
+    "description": "기능 3 제목"
+  },
+  "feature3Desc": {
+    "message": "현재 탭 목록을 원클릭으로 내보내기, 작업 현장을 완전 보존",
+    "description": "기능 3 설명"
+  },
+  "feature4Title": {
+    "message": "스마트 탭 내비게이션",
+    "description": "기능 4 제목"
+  },
+  "feature4Desc": {
+    "message": "트리 구조를 층층이 열고 닫기",
+    "description": "기능 4 설명"
+  },
+  "feature5Title": {
+    "message": "읽기 위치 기억",
+    "description": "기능 5 제목"
+  },
+  "feature5Desc": {
+    "message": "마지막 읽기 위치를 기억, 열 때마다 이전 진행 상황에서 계속",
+    "description": "기능 5 설명"
+  },
+  "feature6Title": {
+    "message": "검색 & 기록",
+    "description": "기능 6 제목"
+  },
+  "feature6Desc": {
+    "message": "실시간으로 탭 제목과 URL 검색",
+    "description": "기능 6 설명"
+  },
+  "settingsDesc": {
+    "message": "탭 트리 확장 프로그램 설정 관리",
+    "description": "설정 페이지 설명"
+  },
+  "generalSettingsDesc": {
+    "message": "기본 확장 프로그램 설정",
+    "description": "일반 설정 설명"
+  },
+  "pngFile": {
+    "message": "PNG 파일",
+    "description": "PNG 파일 타입"
+  },
+  "jpgFile": {
+    "message": "JPG 파일",
+    "description": "JPG 파일 타입"
+  },
+  "svgFile": {
+    "message": "SVG 파일",
+    "description": "SVG 파일 타입"
+  },
+  "audioPlaying": {
+    "message": "오디오 재생 중",
+    "description": "오디오 재생 툴팁"
+  },
+  "audioMuted": {
+    "message": "음소거됨",
+    "description": "오디오 음소거 툴팁"
+  },
+  "bookmarkAdded": {
+    "message": "북마크에 추가됨",
+    "description": "북마크 추가 툴팁"
+  },
+  "selectNode": {
+    "message": "이 노드와 모든 하위 노드 선택",
+    "description": "선택 버튼 툴팁"
+  },
+  "closeNode": {
+    "message": "이 노드와 모든 하위 노드 닫기",
+    "description": "닫기 버튼 툴팁 (부모 노드)"
+  },
+  "closeTab": {
+    "message": "이 탭 닫기",
+    "description": "닫기 버튼 툴팁 (단일 탭)"
+  },
+  "closeSelectedTabs": {
+    "message": "선택된 모든 탭 닫기 ($count$개 탭)",
+    "description": "닫기 버튼 툴팁 (다중 선택 탭)",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  }
+}

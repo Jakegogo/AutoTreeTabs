@@ -1,0 +1,280 @@
+{
+  "appName": {
+    "message": "Auto Tree Tabs",
+    "description": "擴展名稱"
+  },
+  "appDesc": {
+    "message": "讓您從雜亂無章的標籤頁中解脫出來！好的思路需要有好的條理支撐。",
+    "description": "擴展描述"
+  },
+  
+  "searchPlaceholder": {
+    "message": "搜尋標籤頁...",
+    "description": "搜尋輸入框佔位符"
+  },
+  "clearSearchBtn": {
+    "message": "清除搜尋",
+    "description": "清除搜尋按鈕"
+  },
+  "backBtn": {
+    "message": "後退",
+    "description": "後退按鈕"
+  },
+  "forwardBtn": {
+    "message": "前進",
+    "description": "前進按鈕"
+  },
+  "exportBtn": {
+    "message": "匯出",
+    "description": "匯出按鈕"
+  },
+  "organizeBtn": {
+    "message": "整理",
+    "description": "自動整理按鈕"
+  },
+  
+  "window": {
+    "message": "視窗",
+    "description": "視窗標籤"
+  },
+  "tabs": {
+    "message": "個標籤頁",
+    "description": "標籤頁數量"
+  },
+  "tab": {
+    "message": "個標籤頁",
+    "description": "單個標籤頁"
+  },
+  
+  "pdfFile": {
+    "message": "PDF檔案",
+    "description": "PDF檔案類型"
+  },
+  "htmlFile": {
+    "message": "HTML檔案",
+    "description": "HTML檔案類型"
+  },
+  "imageFile": {
+    "message": "圖片檔案",
+    "description": "圖片檔案類型"
+  },
+  
+  "bookmarked": {
+    "message": "已收藏",
+    "description": "收藏狀態"
+  },
+  "audible": {
+    "message": "正在播放音訊",
+    "description": "音訊播放狀態"
+  },
+  "muted": {
+    "message": "已靜音",
+    "description": "靜音狀態"
+  },
+  "pinned": {
+    "message": "已固定",
+    "description": "固定標籤頁狀態"
+  },
+  
+  "settingsTitle": {
+    "message": "Auto Tree Tabs 設定",
+    "description": "設定頁面標題"
+  },
+  "generalSettings": {
+    "message": "一般設定",
+    "description": "一般設定部分"
+  },
+  "enableScrollRestore": {
+    "message": "啟用捲動位置恢復",
+    "description": "捲動恢復設定"
+  },
+  "enableScrollRestoreDesc": {
+    "message": "返回標籤頁時自動恢復捲動位置",
+    "description": "捲動恢復說明"
+  },
+  "enableAutoOrganize": {
+    "message": "啟用自動整理",
+    "description": "自動整理設定"
+  },
+  "enableAutoOrganizeDesc": {
+    "message": "開啟彈窗時自動按網域整理標籤頁",
+    "description": "自動整理說明"
+  },
+  "clearAllData": {
+    "message": "清除所有資料",
+    "description": "清除資料按鈕"
+  },
+  "clearAllDataDesc": {
+    "message": "清除包括歷史記錄和設定在內的所有擴展資料",
+    "description": "清除資料說明"
+  },
+  "clearAllDataConfirm": {
+    "message": "確定要清除所有資料嗎？此操作不可撤銷。",
+    "description": "清除資料確認"
+  },
+  "dataCleared": {
+    "message": "所有資料已清除",
+    "description": "資料清除訊息"
+  },
+  "settingsSaved": {
+    "message": "設定已儲存",
+    "description": "設定儲存訊息"
+  },
+  
+  "exportTitle": {
+    "message": "匯出標籤頁樹",
+    "description": "匯出對話框標題"
+  },
+  "exportSuccess": {
+    "message": "標籤頁樹匯出成功",
+    "description": "匯出成功訊息"
+  },
+  "exportError": {
+    "message": "匯出失敗",
+    "description": "匯出錯誤訊息"
+  },
+  
+  "navigationTitle": {
+    "message": "標籤頁導航",
+    "description": "導航部分標題"
+  },
+  "noHistory": {
+    "message": "暫無導航歷史",
+    "description": "無歷史訊息"
+  },
+  
+  "searchResults": {
+    "message": "搜尋結果",
+    "description": "搜尋結果部分"
+  },
+  "noSearchResults": {
+    "message": "未找到匹配的標籤頁",
+    "description": "無搜尋結果訊息"
+  },
+  "searchResultsCount": {
+    "message": "找到 $count$ 個標籤頁",
+    "description": "搜尋結果數量",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  
+  "organizeSuccess": {
+    "message": "標籤頁整理成功",
+    "description": "整理成功訊息"
+  },
+  "organizeError": {
+    "message": "標籤頁整理失敗",
+    "description": "整理錯誤訊息"
+  },
+  "organizing": {
+    "message": "正在整理標籤頁...",
+    "description": "整理進行中"
+  },
+  
+  "feature1Title": {
+    "message": "樹狀結構，易於管理",
+    "description": "特性1標題"
+  },
+  "feature1Desc": {
+    "message": "清晰的層次結構展示，告別混亂的標籤頁排列",
+    "description": "特性1描述"
+  },
+  "feature2Title": {
+    "message": "一鍵智慧整理",
+    "description": "特性2標題"
+  },
+  "feature2Desc": {
+    "message": "按網域和子網域自動排序，相關網站自動聚集",
+    "description": "特性2描述"
+  },
+  "feature3Title": {
+    "message": "工作區匯出功能",
+    "description": "特性3標題"
+  },
+  "feature3Desc": {
+    "message": "一鍵匯出當前標籤頁清單，工作現場完整保存",
+    "description": "特性3描述"
+  },
+  "feature4Title": {
+    "message": "智慧標籤頁導航",
+    "description": "特性4標題"
+  },
+  "feature4Desc": {
+    "message": "樹形結構層層開啟，層層關閉",
+    "description": "特性4描述"
+  },
+  "feature5Title": {
+    "message": "閱讀位置記憶",
+    "description": "特性5標題"
+  },
+  "feature5Desc": {
+    "message": "記住上次閱讀位置，每次開啟繼續上次進度",
+    "description": "特性5描述"
+  },
+  "feature6Title": {
+    "message": "搜尋與歷史記錄",
+    "description": "特性6標題"
+  },
+  "feature6Desc": {
+    "message": "即時搜尋標籤頁標題和URL",
+    "description": "特性6描述"
+  },
+  "settingsDesc": {
+    "message": "管理您的標籤頁樹擴展偏好設定",
+    "description": "設定頁面描述"
+  },
+  "generalSettingsDesc": {
+    "message": "基本擴展偏好設定",
+    "description": "一般設定描述"
+  },
+  "pngFile": {
+    "message": "PNG檔案",
+    "description": "PNG檔案類型"
+  },
+  "jpgFile": {
+    "message": "JPG檔案",
+    "description": "JPG檔案類型"
+  },
+  "svgFile": {
+    "message": "SVG檔案",
+    "description": "SVG檔案類型"
+  },
+  "audioPlaying": {
+    "message": "正在播放音訊",
+    "description": "音訊播放提示"
+  },
+  "audioMuted": {
+    "message": "已靜音",
+    "description": "音訊靜音提示"
+  },
+  "bookmarkAdded": {
+    "message": "已新增至書籤",
+    "description": "書籤新增提示"
+  },
+  "selectNode": {
+    "message": "選取該節點及所有子節點",
+    "description": "選擇按鈕提示"
+  },
+  "closeNode": {
+    "message": "關閉該節點及所有子節點",
+    "description": "關閉按鈕提示（父節點）"
+  },
+  "closeTab": {
+    "message": "關閉此標籤頁",
+    "description": "關閉按鈕提示（單個標籤頁）"
+  },
+  "closeSelectedTabs": {
+    "message": "關閉所有選取的標籤頁 ($count$個)",
+    "description": "關閉按鈕提示（多個選取標籤頁）",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  }
+}

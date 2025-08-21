@@ -1,0 +1,279 @@
+{
+  "appName": {
+    "message": "Auto Tree Tabs",
+    "description": "Extension name"
+  },
+  "appDesc": {
+    "message": "Free yourself from chaotic tabs! Good ideas need good organization support.",
+    "description": "Extension description"
+  },
+  "searchPlaceholder": {
+    "message": "Search tabs...",
+    "description": "Search input placeholder"
+  },
+  "clearSearchBtn": {
+    "message": "Clear search",
+    "description": "Clear search button"
+  },
+  "backBtn": {
+    "message": "Back",
+    "description": "Back button"
+  },
+  "forwardBtn": {
+    "message": "Forward", 
+    "description": "Forward button"
+  },
+  "exportBtn": {
+    "message": "Export",
+    "description": "Export button"
+  },
+  "organizeBtn": {
+    "message": "Organize",
+    "description": "Auto organize button"
+  },
+  
+  "window": {
+    "message": "Window",
+    "description": "Window label"
+  },
+  "tabs": {
+    "message": "tabs",
+    "description": "Tabs count"
+  },
+  "tab": {
+    "message": "tab",
+    "description": "Single tab"
+  },
+  
+  "pdfFile": {
+    "message": "PDF File",
+    "description": "PDF file type"
+  },
+  "htmlFile": {
+    "message": "HTML File", 
+    "description": "HTML file type"
+  },
+  "imageFile": {
+    "message": "Image File",
+    "description": "Image file type"
+  },
+  
+  "bookmarked": {
+    "message": "Bookmarked",
+    "description": "Bookmarked status"
+  },
+  "audible": {
+    "message": "Playing audio",
+    "description": "Audio playing status"
+  },
+  "muted": {
+    "message": "Muted",
+    "description": "Muted status"
+  },
+  "pinned": {
+    "message": "Pinned",
+    "description": "Pinned tab status"
+  },
+  
+  "settingsTitle": {
+    "message": "Auto Tree Tabs Settings",
+    "description": "Settings page title"
+  },
+  "generalSettings": {
+    "message": "General Settings",
+    "description": "General settings section"
+  },
+  "enableScrollRestore": {
+    "message": "Enable scroll position restore",
+    "description": "Scroll restore setting"
+  },
+  "enableScrollRestoreDesc": {
+    "message": "Automatically restore scroll position when returning to a tab",
+    "description": "Scroll restore description"
+  },
+  "enableAutoOrganize": {
+    "message": "Enable auto organize",
+    "description": "Auto organize setting"
+  },
+  "enableAutoOrganizeDesc": {
+    "message": "Automatically organize tabs by domain when opening the popup",
+    "description": "Auto organize description"
+  },
+  "clearAllData": {
+    "message": "Clear All Data",
+    "description": "Clear data button"
+  },
+  "clearAllDataDesc": {
+    "message": "Clear all extension data including history and settings",
+    "description": "Clear data description"
+  },
+  "clearAllDataConfirm": {
+    "message": "Are you sure you want to clear all data? This action cannot be undone.",
+    "description": "Clear data confirmation"
+  },
+  "dataCleared": {
+    "message": "All data has been cleared",
+    "description": "Data cleared message"
+  },
+  "settingsSaved": {
+    "message": "Settings saved",
+    "description": "Settings saved message"
+  },
+  
+  "exportTitle": {
+    "message": "Export Tab Tree",
+    "description": "Export dialog title"
+  },
+  "exportSuccess": {
+    "message": "Tab tree exported successfully",
+    "description": "Export success message"
+  },
+  "exportError": {
+    "message": "Export failed",
+    "description": "Export error message"
+  },
+  
+  "navigationTitle": {
+    "message": "Tab Navigation",
+    "description": "Navigation section title"
+  },
+  "noHistory": {
+    "message": "No navigation history",
+    "description": "No history message"
+  },
+  
+  "searchResults": {
+    "message": "Search Results",
+    "description": "Search results section"
+  },
+  "noSearchResults": {
+    "message": "No matching tabs found",
+    "description": "No search results message"
+  },
+  "searchResultsCount": {
+    "message": "$count$ tabs found",
+    "description": "Search results count",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  
+  "organizeSuccess": {
+    "message": "Tabs organized successfully",
+    "description": "Organize success message"
+  },
+  "organizeError": {
+    "message": "Failed to organize tabs",
+    "description": "Organize error message"
+  },
+  "organizing": {
+    "message": "Organizing tabs...",
+    "description": "Organizing in progress"
+  },
+  
+  "feature1Title": {
+    "message": "Tree Structure, Easy Management",
+    "description": "Feature 1 title"
+  },
+  "feature1Desc": {
+    "message": "Clear hierarchical display, goodbye to chaotic tab arrangements",
+    "description": "Feature 1 description"
+  },
+  "feature2Title": {
+    "message": "One-Click Smart Organization", 
+    "description": "Feature 2 title"
+  },
+  "feature2Desc": {
+    "message": "Automatic sorting by domain and subdomain, related websites automatically cluster",
+    "description": "Feature 2 description"
+  },
+  "feature3Title": {
+    "message": "Workspace Export Function",
+    "description": "Feature 3 title"
+  },
+  "feature3Desc": {
+    "message": "One-click export of current tab list, complete preservation of work scene",
+    "description": "Feature 3 description"
+  },
+  "feature4Title": {
+    "message": "Smart Tab Navigation",
+    "description": "Feature 4 title"
+  },
+  "feature4Desc": {
+    "message": "Tree structure layer by layer opening and closing",
+    "description": "Feature 4 description"
+  },
+  "feature5Title": {
+    "message": "Reading Position Memory",
+    "description": "Feature 5 title"
+  },
+  "feature5Desc": {
+    "message": "Remember last reading position, continue from where you left off",
+    "description": "Feature 5 description"
+  },
+  "feature6Title": {
+    "message": "Search & History",
+    "description": "Feature 6 title"
+  },
+  "feature6Desc": {
+    "message": "Real-time search and navigation history",
+    "description": "Feature 6 description"
+  },
+  "settingsDesc": {
+    "message": "Manage your tab tree extension preferences",
+    "description": "Settings page description"
+  },
+  "generalSettingsDesc": {
+    "message": "Basic extension preferences",
+    "description": "General settings description"
+  },
+  "pngFile": {
+    "message": "PNG File",
+    "description": "PNG file type"
+  },
+  "jpgFile": {
+    "message": "JPG File", 
+    "description": "JPG file type"
+  },
+  "svgFile": {
+    "message": "SVG File",
+    "description": "SVG file type"
+  },
+  "audioPlaying": {
+    "message": "Playing audio",
+    "description": "Audio playing tooltip"
+  },
+  "audioMuted": {
+    "message": "Muted",
+    "description": "Audio muted tooltip"
+  },
+  "bookmarkAdded": {
+    "message": "Bookmarked",
+    "description": "Bookmark added tooltip"
+  },
+  "selectNode": {
+    "message": "Select this node and all child nodes",
+    "description": "Select button tooltip"
+  },
+  "closeNode": {
+    "message": "Close this node and all child nodes",
+    "description": "Close button tooltip for parent node"
+  },
+  "closeTab": {
+    "message": "Close this tab",
+    "description": "Close button tooltip for single tab"
+  },
+  "closeSelectedTabs": {
+    "message": "Close all selected tabs ($count$ tabs)",
+    "description": "Close button tooltip for multiple selected tabs",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  }
+}

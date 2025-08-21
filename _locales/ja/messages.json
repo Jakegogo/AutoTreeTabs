@@ -1,0 +1,280 @@
+{
+  "appName": {
+    "message": "Auto Tree Tabs",
+    "description": "拡張機能名"
+  },
+  "appDesc": {
+    "message": "混沌としたタブから解放されましょう！良いアイデアには良い整理が必要です。",
+    "description": "拡張機能の説明"
+  },
+  
+  "searchPlaceholder": {
+    "message": "タブを検索...",
+    "description": "検索入力のプレースホルダー"
+  },
+  "clearSearchBtn": {
+    "message": "検索をクリア",
+    "description": "検索クリアボタン"
+  },
+  "backBtn": {
+    "message": "戻る",
+    "description": "戻るボタン"
+  },
+  "forwardBtn": {
+    "message": "進む",
+    "description": "進むボタン"
+  },
+  "exportBtn": {
+    "message": "エクスポート",
+    "description": "エクスポートボタン"
+  },
+  "organizeBtn": {
+    "message": "整理",
+    "description": "自動整理ボタン"
+  },
+  
+  "window": {
+    "message": "ウィンドウ",
+    "description": "ウィンドウラベル"
+  },
+  "tabs": {
+    "message": "個のタブ",
+    "description": "タブ数"
+  },
+  "tab": {
+    "message": "個のタブ",
+    "description": "単一タブ"
+  },
+  
+  "pdfFile": {
+    "message": "PDFファイル",
+    "description": "PDFファイルタイプ"
+  },
+  "htmlFile": {
+    "message": "HTMLファイル",
+    "description": "HTMLファイルタイプ"
+  },
+  "imageFile": {
+    "message": "画像ファイル",
+    "description": "画像ファイルタイプ"
+  },
+  
+  "bookmarked": {
+    "message": "ブックマーク済み",
+    "description": "ブックマーク状態"
+  },
+  "audible": {
+    "message": "音声再生中",
+    "description": "音声再生状態"
+  },
+  "muted": {
+    "message": "ミュート済み",
+    "description": "ミュート状態"
+  },
+  "pinned": {
+    "message": "固定済み",
+    "description": "固定タブ状態"
+  },
+  
+  "settingsTitle": {
+    "message": "Auto Tree Tabs 設定",
+    "description": "設定ページタイトル"
+  },
+  "generalSettings": {
+    "message": "一般設定",
+    "description": "一般設定セクション"
+  },
+  "enableScrollRestore": {
+    "message": "スクロール位置復元を有効化",
+    "description": "スクロール復元設定"
+  },
+  "enableScrollRestoreDesc": {
+    "message": "タブに戻る際に自動的にスクロール位置を復元",
+    "description": "スクロール復元の説明"
+  },
+  "enableAutoOrganize": {
+    "message": "自動整理を有効化",
+    "description": "自動整理設定"
+  },
+  "enableAutoOrganizeDesc": {
+    "message": "ポップアップを開く際にドメイン別にタブを自動整理",
+    "description": "自動整理の説明"
+  },
+  "clearAllData": {
+    "message": "すべてのデータをクリア",
+    "description": "データクリアボタン"
+  },
+  "clearAllDataDesc": {
+    "message": "履歴と設定を含むすべての拡張機能データをクリア",
+    "description": "データクリアの説明"
+  },
+  "clearAllDataConfirm": {
+    "message": "すべてのデータをクリアしてもよろしいですか？この操作は元に戻せません。",
+    "description": "データクリア確認"
+  },
+  "dataCleared": {
+    "message": "すべてのデータがクリアされました",
+    "description": "データクリアメッセージ"
+  },
+  "settingsSaved": {
+    "message": "設定が保存されました",
+    "description": "設定保存メッセージ"
+  },
+  
+  "exportTitle": {
+    "message": "タブツリーをエクスポート",
+    "description": "エクスポートダイアログタイトル"
+  },
+  "exportSuccess": {
+    "message": "タブツリーのエクスポートが成功しました",
+    "description": "エクスポート成功メッセージ"
+  },
+  "exportError": {
+    "message": "エクスポートに失敗しました",
+    "description": "エクスポートエラーメッセージ"
+  },
+  
+  "navigationTitle": {
+    "message": "タブナビゲーション",
+    "description": "ナビゲーションセクションタイトル"
+  },
+  "noHistory": {
+    "message": "ナビゲーション履歴がありません",
+    "description": "履歴なしメッセージ"
+  },
+  
+  "searchResults": {
+    "message": "検索結果",
+    "description": "検索結果セクション"
+  },
+  "noSearchResults": {
+    "message": "一致するタブが見つかりません",
+    "description": "検索結果なしメッセージ"
+  },
+  "searchResultsCount": {
+    "message": "$count$ 個のタブが見つかりました",
+    "description": "検索結果数",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  
+  "organizeSuccess": {
+    "message": "タブの整理が成功しました",
+    "description": "整理成功メッセージ"
+  },
+  "organizeError": {
+    "message": "タブの整理に失敗しました",
+    "description": "整理エラーメッセージ"
+  },
+  "organizing": {
+    "message": "タブを整理中...",
+    "description": "整理進行中"
+  },
+  
+  "feature1Title": {
+    "message": "ツリー構造で簡単管理",
+    "description": "機能1タイトル"
+  },
+  "feature1Desc": {
+    "message": "明確な階層構造表示で、混沌としたタブ配置にお別れ",
+    "description": "機能1説明"
+  },
+  "feature2Title": {
+    "message": "ワンクリック スマート整理",
+    "description": "機能2タイトル"
+  },
+  "feature2Desc": {
+    "message": "ドメインとサブドメインで自動ソート、関連サイトが自動的にグループ化",
+    "description": "機能2説明"
+  },
+  "feature3Title": {
+    "message": "ワークスペース エクスポート機能",
+    "description": "機能3タイトル"
+  },
+  "feature3Desc": {
+    "message": "現在のタブリストをワンクリックでエクスポート、作業現場を完全保存",
+    "description": "機能3説明"
+  },
+  "feature4Title": {
+    "message": "スマートタブナビゲーション",
+    "description": "機能4タイトル"
+  },
+  "feature4Desc": {
+    "message": "ツリー構造を層ごとに開いたり閉じたり",
+    "description": "機能4説明"
+  },
+  "feature5Title": {
+    "message": "読書位置記憶",
+    "description": "機能5タイトル"
+  },
+  "feature5Desc": {
+    "message": "前回の読書位置を記憶、毎回開く際に前回の進捗から継続",
+    "description": "機能5説明"
+  },
+  "feature6Title": {
+    "message": "検索 & 履歴",
+    "description": "機能6タイトル"
+  },
+  "feature6Desc": {
+    "message": "リアルタイムでタブタイトルとURLを検索",
+    "description": "機能6説明"
+  },
+  "settingsDesc": {
+    "message": "タブツリー拡張機能の設定を管理",
+    "description": "設定ページ説明"
+  },
+  "generalSettingsDesc": {
+    "message": "基本的な拡張機能設定",
+    "description": "一般設定説明"
+  },
+  "pngFile": {
+    "message": "PNGファイル",
+    "description": "PNGファイルタイプ"
+  },
+  "jpgFile": {
+    "message": "JPGファイル",
+    "description": "JPGファイルタイプ"
+  },
+  "svgFile": {
+    "message": "SVGファイル",
+    "description": "SVGファイルタイプ"
+  },
+  "audioPlaying": {
+    "message": "音声再生中",
+    "description": "音声再生ツールチップ"
+  },
+  "audioMuted": {
+    "message": "ミュート済み",
+    "description": "音声ミュートツールチップ"
+  },
+  "bookmarkAdded": {
+    "message": "ブックマーク済み",
+    "description": "ブックマーク追加ツールチップ"
+  },
+  "selectNode": {
+    "message": "このノードとすべての子ノードを選択",
+    "description": "選択ボタンツールチップ"
+  },
+  "closeNode": {
+    "message": "このノードとすべての子ノードを閉じる",
+    "description": "閉じるボタンツールチップ（親ノード）"
+  },
+  "closeTab": {
+    "message": "このタブを閉じる",
+    "description": "閉じるボタンツールチップ（単一タブ）"
+  },
+  "closeSelectedTabs": {
+    "message": "選択されたすべてのタブを閉じる ($count$個のタブ)",
+    "description": "閉じるボタンツールチップ（複数選択タブ）",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  }
+}

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Generator for Auto Tree Tabs</title>
+</head>
+<body>
+    <h1>Auto Tree Tabs Icon Generator</h1>
+    <p>点击按钮生成不同尺寸的图标文件：</p>
+    
+    <button onclick="generateIcons()">生成所有图标</button>
+    
+    <div id="icons" style="margin-top: 20px;"></div>
+    
+    <script>
+        function generateIcons() {
+            const sizes = [16, 32, 48, 128];
+            const iconsDiv = document.getElementById('icons');
+            iconsDiv.innerHTML = '';
+            
+            sizes.forEach(size => {
+                // 创建Canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                
+                // 绘制背景
+                ctx.fillStyle = '#4285f4';
+                ctx.fillRect(0, 0, size, size);
+                
+                // 计算比例
+                const scale = size / 16;
+                
+                // 绘制树状结构图标
+                ctx.fillStyle = 'white';
+                
+                // 主横线
+                const mainLineY = 3 * scale;
+                const mainLineHeight = 2 * scale;
+                ctx.fillRect(3 * scale, mainLineY, 10 * scale, mainLineHeight);
+                
+                // 第一个子项
+                const item1Y = 6 * scale;
+                const item1Height = 1 * scale;
+                ctx.fillRect(4 * scale, item1Y, 8 * scale, item1Height);
+                
+                // 第二个子项
+                const item2Y = 8 * scale;
+                const item2Height = 1 * scale;
+                ctx.fillRect(5 * scale, item2Y, 6 * scale, item2Height);
+                
+                // 添加到页面
+                const container = document.createElement('div');
+                container.style.margin = '10px';
+                container.style.display = 'inline-block';
+                
+                const label = document.createElement('p');
+                label.textContent = `${size}x${size}`;
+                
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = `icon${size}.png`;
+                link.textContent = `下载 icon${size}.png`;
+                link.style.display = 'block';
+                link.style.marginTop = '5px';
+                
+                container.appendChild(canvas);
+                container.appendChild(label);
+                container.appendChild(link);
+                
+                iconsDiv.appendChild(container);
+            });
+        }
+    </script>
+</body>
+</html>

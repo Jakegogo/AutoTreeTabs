@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Auto Tree Tabs - I18n Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .lang-info {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .test-item {
+            margin: 10px 0;
+            padding: 8px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        .key {
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .value {
+            color: #333;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌍 Auto Tree Tabs 国际化测试</h1>
+    
+    <div class="lang-info" id="langInfo">
+        正在加载语言信息...
+    </div>
+    
+    <div class="test-section">
+        <h2>📋 基本信息测试</h2>
+        <div class="test-item">
+            <span class="key">appName:</span>
+            <span class="value" id="test-appName"></span>
+        </div>
+        <div class="test-item">
+            <span class="key">appDesc:</span>
+            <span class="value" id="test-appDesc"></span>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🎛️ 界面元素测试</h2>
+        <div class="test-item">
+            <span class="key">searchPlaceholder:</span>
+            <span class="value" id="test-searchPlaceholder"></span>
+        </div>
+        <div class="test-item">
+            <span class="key">exportBtn:</span>
+            <span class="value" id="test-exportBtn"></span>
+        </div>
+        <div class="test-item">
+            <span class="key">organizeBtn:</span>
+            <span class="value" id="test-organizeBtn"></span>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📄 文件类型测试</h2>
+        <div class="test-item">
+            <span class="key">pdfFile:</span>
+            <span class="value" id="test-pdfFile"></span>
+        </div>
+        <div class="test-item">
+            <span class="key">htmlFile:</span>
+            <span class="value" id="test-htmlFile"></span>
+        </div>
+        <div class="test-item">
+            <span class="key">imageFile:</span>
+            <span class="value" id="test-imageFile"></span>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>⚙️ 设置页面测试</h2>
+        <div class="test-item">
+            <span class="key">settingsTitle:</span>
+            <span class="value" id="test-settingsTitle"></span>
+        </div>
+        <div class="test-item">
+            <span class="key">enableScrollRestore:</span>
+            <span class="value" id="test-enableScrollRestore"></span>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>✨ 功能特性测试</h2>
+        <div class="test-item">
+            <span class="key">feature1Title:</span>
+            <span class="value" id="test-feature1Title"></span>
+        </div>
+        <div class="test-item">
+            <span class="key">feature2Title:</span>
+            <span class="value" id="test-feature2Title"></span>
+        </div>
+        <div class="test-item">
+            <span class="key">feature3Title:</span>
+            <span class="value" id="test-feature3Title"></span>
+        </div>
+    </div>
+
+    <script>
+        // 模拟Chrome i18n API (用于在浏览器中测试)
+        if (typeof chrome === 'undefined' || !chrome.i18n) {
+            // 创建模拟的i18n API
+            window.chrome = window.chrome || {};
+            window.chrome.i18n = {
+                getUILanguage: () => navigator.language || 'en',
+                getMessage: (key, substitutions) => {
+                    // 这里应该加载实际的语言包数据
+                    // 为了测试，我们返回键名
+                    return `[${key}]`;
+                }
+            };
+        }
+        
+        // 当在Chrome扩展环境中时的处理
+        function testI18n() {
+            const currentLang = chrome.i18n.getUILanguage();
+            document.getElementById('langInfo').innerHTML = `
+                <strong>当前语言:</strong> ${currentLang}<br>
+                <strong>测试时间:</strong> ${new Date().toLocaleString()}
+            `;
+            
+            // 测试各种键值
+            const testKeys = [
+                'appName', 'appDesc', 'searchPlaceholder', 'exportBtn', 'organizeBtn',
+                'pdfFile', 'htmlFile', 'imageFile', 'settingsTitle', 'enableScrollRestore',
+                'feature1Title', 'feature2Title', 'feature3Title'
+            ];
+            
+            testKeys.forEach(key => {
+                const element = document.getElementById(`test-${key}`);
+                if (element) {
+                    const message = chrome.i18n.getMessage(key);
+                    element.textContent = message || `[缺失: ${key}]`;
+                    
+                    // 如果消息为空或者是键名本身，标记为错误
+                    if (!message || message === key) {
+                        element.style.color = 'red';
+                        element.style.fontWeight = 'bold';
+                    } else {
+                        element.style.color = 'green';
+                    }
+                }
+            });
+        }
+        
+        // 页面加载完成后开始测试
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(testI18n, 100);
+        });
+        
+        // 提供手动测试按钮
+        window.runI18nTest = testI18n;
+    </script>
+    
+    <div style="margin-top: 30px; padding: 15px; background: #fff3cd; border-radius: 8px;">
+        <h3>📝 测试说明</h3>
+        <p><strong>在Chrome扩展环境中:</strong> 所有文本应该显示为对应语言的翻译</p>
+        <p><strong>在普通浏览器中:</strong> 文本将显示为 [键名] 格式</p>
+        <p><strong>测试步骤:</strong></p>
+        <ol>
+            <li>将此文件复制到扩展目录</li>
+            <li>在扩展的popup或options页面中打开开发者工具</li>
+            <li>在控制台中运行: <code>window.open('i18n-test.html')</code></li>
+            <li>检查各语言文本是否正确显示</li>
+        </ol>
+        <button onclick="runI18nTest()">🔄 重新测试</button>
+    </div>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Tree Tabs 测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .test-links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .test-links a {
+            display: inline-block;
+            padding: 10px 15px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 3px;
+            width: fit-content;
+        }
+        
+        .test-links a:hover {
+            background: #0056b3;
+        }
+        
+        .instructions {
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Auto Tree Tabs 插件测试页面</h1>
+    
+    <div class="instructions">
+        <h3>测试说明</h3>
+        <p>1. 确保已安装 Auto Tree Tabs 插件</p>
+        <p>2. 点击下方不同类型的链接测试插件功能</p>
+        <p>3. 点击插件图标查看标签页树结构</p>
+        <p>4. 测试选择和关闭功能</p>
+    </div>
+
+    <div class="test-section">
+        <h3>新标签页链接测试</h3>
+        <div class="test-links">
+            <a href="https://www.google.com" target="_blank">Google (新标签页)</a>
+            <a href="https://www.github.com" target="_blank">GitHub (新标签页)</a>
+            <a href="https://www.stackoverflow.com" target="_blank">Stack Overflow (新标签页)</a>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>普通链接测试 (需要 Ctrl+点击)</h3>
+        <div class="test-links">
+            <a href="https://www.wikipedia.org">Wikipedia (Ctrl+点击)</a>
+            <a href="https://www.mozilla.org">Mozilla (Ctrl+点击)</a>
+            <a href="https://developer.mozilla.org">MDN (Ctrl+点击)</a>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>嵌套测试链接</h3>
+        <p>点击这些链接创建多层嵌套的标签页结构：</p>
+        <div class="test-links">
+            <a href="data:text/html,<h1>Level 1</h1><a href='data:text/html,<h1>Level 2</h1><a href=\"data:text/html,<h1>Level 3</h1>\" target=\"_blank\">Go to Level 3</a>' target='_blank'>Go to Level 2</a>" target="_blank">创建 3 层嵌套结构</a>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>新功能说明</h3>
+        <h4>🌳 美化树形界面</h4>
+        <ul>
+            <li><strong>ASCII 树形符号</strong>: 使用 │ ├─ └─ 等符号显示清晰的树形结构</li>
+            <li><strong>当前标签页高亮</strong>: 当前活动的标签页会用黄色背景高亮显示</li>
+            <li><strong>自动滚动</strong>: 打开弹窗时自动滚动到当前标签页位置</li>
+            <li><strong>声音状态显示</strong>: 播放声音的标签页显示 ♪ 图标，静音显示 × 图标</li>
+        </ul>
+        
+        <h4>🎯 智能标签页切换</h4>
+        <ul>
+            <li><strong>自动切换</strong>: 关闭当前标签页时自动打开合适的下一个标签页</li>
+            <li><strong>优先级规则</strong>: 
+                <ol>
+                    <li>优先切换到前一个同级标签页</li>
+                    <li>没有同级时切换到父节点</li>
+                    <li>根节点时切换到左侧的同层节点</li>
+                </ol>
+            </li>
+            <li><strong>智能判断</strong>: 只在用户主动关闭标签页时生效，窗口关闭时不触发</li>
+        </ul>
+        
+        <h4>📋 树形结构示例</h4>
+        <pre style="background: #f5f5f5; padding: 10px; border-radius: 3px; font-family: 'Courier New', monospace;">
+├─ 🌐 Google                [♪] [✓] [×]
+│  ├─ 🔍 Search Results     [ ] [✓] [×]
+│  │  └─ 📄 Article 1       [ ] [✓] [×]
+│  └─ 📄 Article 2          [×] [✓] [×]
+└─ 🐙 GitHub                [ ] [✓] [×]
+   ├─ 📄 Repository 1       [ ] [✓] [×]
+   └─ 📄 Repository 2       [ ] [✓] [×]
+      └─ 📄 README.md       [ ] [✓] [×]
+        </pre>
+    </div>
+
+    <div class="test-section">
+        <h3>使用说明</h3>
+        <ol>
+            <li><strong>安装插件</strong>: 在 Chrome 扩展程序页面加载插件文件夹</li>
+            <li><strong>打开链接</strong>: 点击上方的测试链接</li>
+            <li><strong>查看树结构</strong>: 点击浏览器工具栏中的插件图标</li>
+            <li><strong>测试新功能</strong>:
+                <ul>
+                    <li>观察美化的ASCII树形结构</li>
+                    <li>注意当前标签页的高亮显示</li>
+                    <li>测试自动滚动到当前标签页功能</li>
+                    <li>点击树节点选择标签页</li>
+                    <li>点击父节点选择所有子标签页</li>
+                    <li>悬停显示关闭按钮并测试关闭功能</li>
+                    <li>关闭父节点会关闭所有子节点</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <script>
+        // 添加一些辅助脚本
+        document.addEventListener('click', function(e) {
+            if (e.target.tagName === 'A') {
+                console.log('点击链接:', e.target.href);
+                console.log('目标:', e.target.target);
+                console.log('修饰键:', {
+                    ctrl: e.ctrlKey,
+                    meta: e.metaKey,
+                    shift: e.shiftKey,
+                    button: e.button
+                });
+            }
+        });
+        
+        console.log('Auto Tree Tabs 测试页面已加载');
+    </script>
+</body>
+</html>

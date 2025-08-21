@@ -1,0 +1,153 @@
+# IntelliBoard iOS Development Rules
+
+## 📋 Project Overview
+You are working on IntelliBoard, an iOS application written in Swift that provides intelligent keyboard functionality with AI-powered recommendations, custom keys, and voice recognition. The project uses Core Data for persistence, CloudKit for sync, and integrates machine learning models for smart text prediction.
+
+## 🏗️ Project Structure
+- **IntelliBoard/**: Main iOS app target
+- **IntelliBoardExtension/**: Keyboard extension target  
+- **IntelliBoardTests/**: Unit tests (target device: Jake（4）)
+- **ModelTests/**: ML model testing and validation
+- **docs/**: Project documentation and guidelines
+
+## 🔄 Code Refactoring Strategy (循序渐进)
+
+### 1. Readability-First Refactoring (代码可读性重构)
+- **NEVER change existing logic** during readability refactoring
+- Focus only on improving code clarity and structure
+- Remove debugging logs, redundant methods, and reorganize method ordering
+- Clean up temporary test code
+- Improve variable/method naming for clarity
+
+### 2. Logic Refactoring (逻辑重构)  
+- **Stay focused** on the specific refactoring goal
+- Do NOT extend refactoring to unrelated logic areas
+- Make targeted changes only
+
+### 3. Controlled Variable Method (控制变量法)
+- **One refactoring per cycle**: Refactor only one logical component at a time
+- **Always add unit tests** after each refactoring cycle
+- If unit tests are missing, create them before proceeding
+- **Verify tests pass** before moving to the next refactoring cycle
+- Never batch multiple refactoring changes together
+
+### 4. Progressive Validation (逐步验证)
+- Run tests after each change using: `xcodebuild test -scheme IntelliBoard -destination 'platform=iOS Simulator,name=iPhone 16'`
+- Document refactoring purpose and process
+- Communicate changes with team
+
+## 🆕 Adding New Features (添加新特性)
+
+### Development Approach
+1. **Generate minimal feature code** - implement core functionality only, avoid feature creep
+2. **Code Design Principles** - Please keep the code clean and adhere to the design of interface segregation. Avoid adding too many methods and interface parameters whenever possible.
+3. **Write focused unit tests** - cover basic success/failure scenarios  
+4. **Run tests immediately** - ensure functionality works before expansion
+5. **Use simple algorithms initially** - add `//TODO` comments for future optimization
+6. **Add proper file headers** - include author and creation time for new files, modification time for edits
+7. **Requirement Document** - When creating a new feature, also organize the requirement document into an md file and place it in the same directory.
+
+### Testing Requirements
+- Unit tests go in `IntelliBoardTests/` directory
+- Target device: Jake（4） (real device)
+- Focus on core scenarios first, expand coverage later
+- Use XCTest framework with proper setup/teardown
+
+### Example Test Command
+```bash
+xcodebuild -workspace IntelliBoard.xcworkspace -scheme IntelliBoard -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.4' build -derivedDataPath /tmp/xcode_build 2>&1 | tail -10
+```
+
+## 🐛 Debugging Guidelines (调试问题)
+
+### Problem-Focused Debugging
+1. **Confirm approach with user** - present ONE solution approach, not multiple options
+2. **Control variables** - make only ONE change at a time (either add debug logs OR modify logic, never both)
+3. **Don't modify tested infrastructure** - avoid changing working base code (model loading, configuration, etc.)
+4. **Ignore linker errors** - focus on functional issues
+5. **Add prefixes to logs** - ensure debug output is clearly tagged
+6. **Code Changes** - When there are unconfirmed code changes, please list the diff of the modified code after making adjustments.
+7. **Avoid Hardcoding** - Reject the use of hardcoded solutions to address problems. Please adopt more intelligent and robust designs instead.
+
+### When Multiple Solutions Exist
+- **Always ask user to choose** which approach to take
+- Present options clearly: "Option A (add debug logs) or Option B (modify logic) or C (innovative method)?"
+- Wait for confirmation before implementing
+
+### Testing During Debug
+- Write unit tests to isolate issues when helpful
+- Use `IntelliBoardTests/` directory  
+- Target real device: Jake（4）
+- Auto-run tests and analyze logs for problem identification
+
+## 📝 Code Style & Standards
+
+### Swift Conventions
+- Use clear, descriptive naming
+- Prefer `let` over `var` when possible
+- Use guard statements for early returns
+- Follow Apple's Swift style guide
+- Add meaningful comments for complex logic
+
+### File Organization
+- Group related functionality together
+- Use proper access control (private, internal, public)
+- Keep files focused on single responsibility
+- Add file headers with author/creation info
+
+### Error Handling
+- Use proper Swift error handling with `throws/try/catch`
+- Provide meaningful error messages
+- Log errors with appropriate detail level
+
+## 🧪 Testing Philosophy
+
+### Unit Test Strategy
+- Test one component/function at a time
+- Use descriptive test names: `testLoginSuccess()`, `testLoginFailure()`
+- Set up proper test fixtures in `setUp()`
+- Clean up in `tearDown()`
+- Use expectations for async operations
+
+### Test Coverage Priority
+1. Core business logic first
+2. Edge cases and error conditions
+3. Integration points between components
+4. UI interactions (when applicable)
+
+## 🔍 Code Review Checklist
+
+Before submitting changes:
+- [ ] Tests pass on target device
+- [ ] Code follows project conventions
+- [ ] No debug logs in production code
+- [ ] Proper error handling implemented
+- [ ] Documentation updated if needed
+- [ ] Single responsibility maintained
+- [ ] No feature creep beyond original scope
+
+## 🚫 What NOT to Do
+
+- Don't implement multiple features simultaneously
+- Don't refactor unrelated code during feature development  
+- Don't skip unit tests "for later"
+- Don't ignore test failures
+- Don't modify working infrastructure code during debugging
+- Don't add complex error handling in initial implementation
+- Don't create multiple solution variants without user confirmation
+
+## 💡 Best Practices
+
+- Start simple, iterate quickly
+- Write tests before expanding functionality
+- Use version control effectively with clear commit messages
+- Document complex algorithms and business logic
+- Keep user experience as top priority
+- Maintain backwards compatibility when possible
+- Use dependency injection for testability
+
+---
+
+*Remember: Quality over speed. It's better to implement one feature well with proper tests than to rush multiple incomplete features.*
+
+Commenting on Design and Changes: It is essential to document the reasons behind decisions as much as possible. For example, record why modifications were made, why a particular condition was added, and the rationale behind specific implementations. This is especially important for unconventional logic, where the reasoning should be clearly explained.

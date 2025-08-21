@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title data-i18n="settingsTitle">AutoTreeTabs Settings</title>
+  <script src="i18n.js"></script>
+  <style>
+    /* CSS变量定义 - 浅色模式 */
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #333333;
+      --border-color: #ddd;
+      --card-bg: #f9f9f9;
+      --button-danger: #ff4444;
+      --button-danger-hover: #cc0000;
+      --button-primary: #2196f3;
+      --button-primary-hover: #1976d2;
+      --shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* 深色模式 */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #1a1a1a;
+        --text-color: #e0e0e0;
+        --border-color: #555;
+        --card-bg: #2d2d2d;
+        --button-danger: #ff6b6b;
+        --button-danger-hover: #ff5252;
+        --button-primary: #42a5f5;
+        --button-primary-hover: #1e88e5;
+        --shadow: 0 2px 8px rgba(0,0,0,0.3);
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 32px;
+      font-weight: 300;
+    }
+
+    .header p {
+      margin: 10px 0 0;
+      color: var(--text-color);
+      opacity: 0.7;
+      font-size: 16px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .card h2 {
+      margin: 0 0 16px;
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .card p {
+      margin: 0 0 16px;
+      opacity: 0.8;
+    }
+
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .setting-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    .setting-label {
+      flex: 1;
+    }
+
+    .setting-label h3 {
+      margin: 0 0 4px;
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .setting-label p {
+      margin: 0;
+      font-size: 14px;
+      opacity: 0.7;
+    }
+
+    .button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .button-danger {
+      background-color: var(--button-danger);
+      color: white;
+    }
+
+    .button-danger:hover {
+      background-color: var(--button-danger-hover);
+      transform: translateY(-1px);
+    }
+
+    .button-primary {
+      background-color: var(--button-primary);
+      color: white;
+    }
+
+    .button-primary:hover {
+      background-color: var(--button-primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 16px;
+      border-radius: 4px;
+      color: white;
+      font-weight: 500;
+      z-index: 1000;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+    }
+
+    .notification.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .notification.success {
+      background-color: #4CAF50;
+    }
+
+    .notification.error {
+      background-color: #f44336;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 16px;
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+
+    .stat-number {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .danger-zone {
+      border-color: var(--button-danger);
+      border-width: 2px;
+    }
+
+    .danger-zone h2 {
+      color: var(--button-danger);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 data-i18n="settingsTitle">AutoTreeTabs Settings</h1>
+      <p data-i18n="settingsDesc">Manage your tab tree extension preferences</p>
+    </div>
+
+    <!-- 统计信息 -->
+    <div class="card">
+      <h2>📊 Statistics</h2>
+      <p>Current storage usage and statistics</p>
+      <div class="stats">
+        <div class="stat-item">
+          <div class="stat-number" id="tabRelationsCount">0</div>
+          <div class="stat-label">Tab Relations</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="persistentRelationsCount">0</div>
+          <div class="stat-label">Persistent Relations</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="totalStorageSize">0</div>
+          <div class="stat-label">Storage Size (KB)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 一般设置 -->
+    <div class="card">
+      <h2 data-i18n="generalSettings">⚙️ General Settings</h2>
+      <p data-i18n="generalSettingsDesc">Basic extension preferences</p>
+      
+      <div class="setting-item">
+        <div class="setting-label">
+          <h3>Auto Restore Relations</h3>
+          <p>Automatically restore tab relationships when browser restarts</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="autoRestoreToggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label">
+          <h3>Smart Tab Switching</h3>
+          <p>Automatically switch to related tabs when closing current tab</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="smartSwitchToggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label">
+          <h3 data-i18n="enableScrollRestore">Restore Scroll Position</h3>
+          <p data-i18n="enableScrollRestoreDesc">Automatically restore scroll position when switching back to tabs</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="restoreScrollToggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 数据管理 -->
+    <div class="card danger-zone">
+      <h2>🗑️ Data Management</h2>
+      <p>Manage stored data and reset extension state</p>
+      
+      <div class="setting-item">
+        <div class="setting-label">
+          <h3>Clear All Data</h3>
+          <p>Remove all tab relations and persistent storage data. This action cannot be undone.</p>
+        </div>
+        <button class="button button-danger" id="clearAllBtn">
+          Clear All Data
+        </button>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label">
+          <h3>Export Data</h3>
+          <p>Export current tab relations for backup purposes</p>
+        </div>
+        <button class="button button-primary" id="exportDataBtn">
+          Export Data
+        </button>
+      </div>
+    </div>
+
+    <!-- 关于信息 -->
+    <div class="card">
+      <h2>ℹ️ About</h2>
+      <p>Extension information and version details</p>
+      
+      <div class="setting-item">
+        <div class="setting-label">
+          <h3>Version</h3>
+          <p>Current extension version</p>
+        </div>
+        <span id="versionInfo">1.0.0</span>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-label">
+          <h3>Developer</h3>
+          <p>Extension developer information</p>
+        </div>
+        <span>AutoTreeTabs Team</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Switch样式 -->
+  <style>
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--button-primary);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .slider {
+        background-color: #666;
+      }
+    }
+  </style>
+
+  <script src="options.js"></script>
+  <script src="options-init.js"></script>
+</body>
+</html>
