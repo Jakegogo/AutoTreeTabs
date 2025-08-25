@@ -95,8 +95,17 @@ class TabTreePersistentStorage {
   async restoreRelations() {
     try {
       // 检查自动恢复设置
-      if (!settingsCache.isFeatureEnabled('autoRestore')) {
+      const autoRestoreEnabled = await settingsCache.isFeatureEnabledSync('autoRestore');
+      if (!autoRestoreEnabled) {
+        console.log('🚫 autoRestore is disable!')
         return {};
+      }
+      
+      // 检查是否已经有标签页关系数据，如果有则不进行恢复
+      const existingRelations = storageManager.getTabRelations();
+      if (existingRelations && Object.keys(existingRelations).length > 0) {
+        console.log('🚫 Tab relations already exist, skipping restore. Existing relations:', Object.keys(existingRelations).length);
+        return existingRelations;
       }
       
       const tabs = await chrome.tabs.query({});
@@ -129,7 +138,7 @@ class TabTreePersistentStorage {
         if (childTab && parentTab && childTab.id !== parentTab.id && !restoredRelations[childTab.id]) {
           restoredRelations[childTab.id] = parentTab.id;
           restoredCount++;
-          console.log(`✓ Restored: ${childTab.id}(${relation.child.url}) -> ${parentTab.id}(${relation.parent.url})`);
+          // console.log(`✓ Restored: ${childTab.id}(${relation.child.url}) -> ${parentTab.id}(${relation.parent.url})`);
         } else {
           unmatchedCount++;
           if (!childTab) {
@@ -137,7 +146,7 @@ class TabTreePersistentStorage {
           } else if (!parentTab) {
             // console.log(`❌ Parent not found: ${relation.parent.url}`);
           } else if (restoredRelations[childTab.id]) {
-            console.log(`⚠️ Already restored: ${childTab.id}`);
+            // console.log(`⚠️ Already restored: ${childTab.id}`);
           }
         }
       });
@@ -226,6 +235,21 @@ class StorageManager {
 
   // 获取tabRelations（仅内存缓存）
   getTabRelations() {
+    return this.tabRelationsCache;
+  }
+
+  // 同步获取tabRelations，如果缓存为空则先恢复数据
+  async getTabRelationsSync() {
+    // 如果缓存为空，先从持久化存储恢复关系
+    if (!this.tabRelationsCache || Object.keys(this.tabRelationsCache).length === 0) {
+      console.log('📦 Cache is empty, restoring relations from persistent storage...');
+      await persistentStorage.restoreRelations();
+      if (!this.tabRelationsCache || Object.keys(this.tabRelationsCache).length === 0) {
+        console.log('❌ Tab relations cache is still empty after restore');
+      } else {
+        console.log('✅ Tab relations cache restored successfully, tabRelationsCache.size:', Object.keys(this.tabRelationsCache).length);
+      }
+    }
     return this.tabRelationsCache;
   }
 
@@ -431,7 +455,7 @@ class SettingsCache {
   constructor() {
     this.cache = null;
     this.lastUpdate = 0;
-    this.CACHE_DURATION = 5000; // 5秒缓存时间
+    this.CACHE_DURATION = 60000; // 60秒缓存时间
     this.pendingPromise = null; // 防止并发读取
   }
 
@@ -516,6 +540,30 @@ class SettingsCache {
       smartSwitch: true
     };
     
+    return defaults[featureName] !== false;
+  }
+
+  // 同步检查特定设置，如果没有缓存则等待初始化
+  async isFeatureEnabledSync(featureName) {
+    // 如果有缓存且在有效期内，直接使用缓存
+    const now = Date.now();
+    if (this.cache && (now - this.lastUpdate) < this.CACHE_DURATION) {
+      return this.cache[featureName] !== false;
+    }
+    
+    // 没有缓存时，等待异步获取设置
+    await this.getSettings();
+    
+    // 重新获取缓存值
+    if (this.cache) {
+      return this.cache[featureName] !== false;
+    }
+    
+    // 如果仍然没有缓存，返回默认值
+    const defaults = {
+      autoRestore: true,
+      smartSwitch: true
+    };
     return defaults[featureName] !== false;
   }
 }
@@ -685,6 +733,65 @@ let globalTabHistory = {
   lastNavigationTime: 0
 };
 
+// 标签页关闭方向追踪（简单索引方案）
+let tabCloseDirection = {
+  lastCloseTabIndex: -1,        // 上一次关闭的标签页索引
+  beforeLastCloseTabIndex: -1,  // 上上次关闭的标签页索引
+  currentDirection: 'right'     // 当前方向：'left' 或 'right'
+};
+
+// 更新关闭方向索引
+function updateCloseDirectionIndex(closedTabId) {
+  try {
+    // 从快照中获取被关闭标签页的索引位置
+    const snapshotInfo = tabIndexSnapshot.get(closedTabId);
+    if (!snapshotInfo) {
+      console.log(`⚠️ Cannot find closed tab ${closedTabId} in tabIndexSnapshot`);
+      return;
+    }
+    
+    const currentIndex = snapshotInfo.index;
+    
+    // 更新索引记录：当前 -> 上次，上次 -> 上上次
+    tabCloseDirection.beforeLastCloseTabIndex = tabCloseDirection.lastCloseTabIndex;
+    tabCloseDirection.lastCloseTabIndex = currentIndex;
+    
+    console.log(`📍 Updated close indexes: current=${currentIndex}, last=${tabCloseDirection.beforeLastCloseTabIndex}`);
+  } catch (error) {
+    console.error('❌ Error updating close direction index:', error);
+  }
+}
+
+// 基于索引检测标签页关闭方向
+function detectCloseDirectionFromIndex() {
+  try {
+    // 如果没有足够的历史记录，使用默认方向
+    if (tabCloseDirection.lastCloseTabIndex === -1 || tabCloseDirection.beforeLastCloseTabIndex === -1) {
+      console.log('🔍 No sufficient history, using default direction:', tabCloseDirection.currentDirection);
+      return tabCloseDirection.currentDirection;
+    }
+    
+    const lastIndex = tabCloseDirection.lastCloseTabIndex;
+    const beforeLastIndex = tabCloseDirection.beforeLastCloseTabIndex;
+    
+    console.log(`🔍 Index comparison: before last=${beforeLastIndex}, last=${lastIndex}`);
+    
+    // 简单的方向判断逻辑
+    if (lastIndex < beforeLastIndex) {
+      tabCloseDirection.currentDirection = 'left';
+      console.log('🏃‍⬅️ Direction detected: LEFT (closing tabs from right to left)');
+    } else {
+      tabCloseDirection.currentDirection = 'right';
+      console.log('🏃‍➡️ Direction detected: RIGHT (closing tabs from left to right)');
+    }
+    
+    return tabCloseDirection.currentDirection;
+  } catch (error) {
+    console.error('❌ Error detecting close direction from index:', error);
+    return tabCloseDirection.currentDirection;
+  }
+}
+
 // 监听设置变化，清除缓存
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local' && changes.extensionSettings) {
@@ -777,7 +884,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 async function updateChildRelationsForUpdatedParent(parentTabId, updatedParentTab) {
   try {
     const persistentTree = await storageManager.getPersistentTree();
-    const tabRelations = storageManager.getTabRelations();
+    const tabRelations = await storageManager.getTabRelationsSync();
     
     // 查找所有以该标签页为父节点的子节点
     const childTabIds = Object.keys(tabRelations).filter(childId => 
@@ -875,6 +982,8 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
       return;
     }
     
+    // 更新方向检测索引
+    updateCloseDirectionIndex(tabId);
     
     // 获取所有标签页关系数据
     const tabRelations = storageManager.getTabRelations();
@@ -1008,9 +1117,16 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       sendResponse({ success: true });
       return true;
     } else if (request.action === 'getTabRelations') {
-      // 获取当前的标签页关系缓存
+      // 获取当前的标签页关系缓存，如果没有值则先恢复数据
       const tabRelations = storageManager.getTabRelations();
-      sendResponse(tabRelations);
+      if (!tabRelations || Object.keys(tabRelations).length === 0) {
+        // 如果缓存为空，使用同步方法恢复数据
+        const restoredRelations = await storageManager.getTabRelationsSync();
+        console.log('🔄 getTabRelations returns:', Object.keys(restoredRelations).length);
+        sendResponse(restoredRelations);
+      } else {
+        sendResponse(tabRelations);
+      }
       return true;
     } else if (request.action === 'saveScrollPosition') {
       // 保存滚动位置
@@ -1057,7 +1173,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 // 设置标签页的父标签页
 async function setTabParent(childTabId, parentTabId) {
   try {
-    const tabRelations = storageManager.getTabRelations();
+    const tabRelations = await storageManager.getTabRelationsSync();
     
     tabRelations[childTabId] = parentTabId;
     
@@ -1092,7 +1208,7 @@ async function setTabParent(childTabId, parentTabId) {
 // 移除标签页相关的所有关系
 async function removeTabRelations(removedTabId) {
     try {
-    const tabRelations = storageManager.getTabRelations();
+    const tabRelations = await storageManager.getTabRelationsSync();
 
     // 移除以该标签页为子标签页的关系
     delete tabRelations[removedTabId];
@@ -1125,8 +1241,12 @@ async function cleanupScrollPositionForTab(tabId) {
   }
 }
 
-// 查找下一个要激活的标签页
+// 查找下一个要激活的标签页（智能方向检测 - 基于索引）
 function findNextTabToActivate(closedTabId, tabRelations, allTabs) {
+  // 检测关闭方向（基于索引）
+  const direction = detectCloseDirectionFromIndex();
+  console.log(`🧭 Using direction: ${direction.toUpperCase()} for sibling search`);
+  
   const tabMap = new Map();
   
   // 创建标签页映射
@@ -1144,38 +1264,73 @@ function findNextTabToActivate(closedTabId, tabRelations, allTabs) {
     // 找到父节点，查找同级节点
     const siblings = allTabs.filter(tab => tabRelations[tab.id] === parentId);
     
-    // 查找前一个兄弟节点
-    const previousSibling = findPreviousSibling(closedTabId, siblings);
-    if (previousSibling) {
-      console.log(`Found previous sibling: ${previousSibling.id}`);
-      return previousSibling.id;
+    // 根据检测到的方向优先查找兄弟节点
+    if (direction === 'right') {
+      // 优先查找下一个兄弟节点（往右）
+      const nextSibling = findNextSibling(closedTabId, siblings);
+      if (nextSibling) {
+        console.log(`Found next sibling (RIGHT): ${nextSibling.id}`);
+        return nextSibling.id;
+      }
+      
+      // 没有下一个兄弟节点，查找前一个兄弟节点
+      const previousSibling = findPreviousSibling(closedTabId, siblings);
+      if (previousSibling) {
+        console.log(`No next sibling, found previous sibling (fallback): ${previousSibling.id}`);
+        return previousSibling.id;
+      }
+    } else {
+      // 优先查找前一个兄弟节点（往左）
+      const previousSibling = findPreviousSibling(closedTabId, siblings);
+      if (previousSibling) {
+        console.log(`Found previous sibling (LEFT): ${previousSibling.id}`);
+        return previousSibling.id;
+      }
+      
+      // 没有前一个兄弟节点，查找下一个兄弟节点
+      const nextSibling = findNextSibling(closedTabId, siblings);
+      if (nextSibling) {
+        console.log(`No previous sibling, found next sibling (fallback): ${nextSibling.id}`);
+        return nextSibling.id;
+      }
     }
     
-    // 没有前一个兄弟节点，查找下一个兄弟节点
-    const nextSibling = findNextSibling(closedTabId, siblings);
-    if (nextSibling) {
-      console.log(`No previous sibling, found next sibling: ${nextSibling.id}`);
-      return nextSibling.id;
-    }
-    
-    // 没有前一个或下一个兄弟节点，返回父节点
-    console.log(`No previous or next sibling, activating parent: ${parentId}`);
+    // 没有找到任何兄弟节点，返回父节点
+    console.log(`No siblings found, activating parent: ${parentId}`);
     return parentId;
   } else {
     // 是根节点，查找同级的根节点
     const rootTabs = allTabs.filter(tab => !tabRelations[tab.id]);
-    const previousRoot = findPreviousSibling(closedTabId, rootTabs);
     
-    if (previousRoot) {
-      console.log(`Found previous root sibling: ${previousRoot.id}`);
-      return previousRoot.id;
-    }
-    
-    // 没有前一个根兄弟节点，查找下一个根兄弟节点
-    const nextRoot = findNextSibling(closedTabId, rootTabs);
-    if (nextRoot) {
-      console.log(`No previous root sibling, found next root sibling: ${nextRoot.id}`);
-      return nextRoot.id;
+    // 根据方向优先查找根节点兄弟
+    if (direction === 'right') {
+      // 优先查找下一个根兄弟节点
+      const nextRoot = findNextSibling(closedTabId, rootTabs);
+      if (nextRoot) {
+        console.log(`Found next root sibling (RIGHT): ${nextRoot.id}`);
+        return nextRoot.id;
+      }
+      
+      // 没有下一个根兄弟节点，查找前一个根兄弟节点
+      const previousRoot = findPreviousSibling(closedTabId, rootTabs);
+      if (previousRoot) {
+        console.log(`No next root sibling, found previous root sibling (fallback): ${previousRoot.id}`);
+        return previousRoot.id;
+      }
+    } else {
+      // 优先查找前一个根兄弟节点
+      const previousRoot = findPreviousSibling(closedTabId, rootTabs);
+      if (previousRoot) {
+        console.log(`Found previous root sibling (LEFT): ${previousRoot.id}`);
+        return previousRoot.id;
+      }
+      
+      // 没有前一个根兄弟节点，查找下一个根兄弟节点
+      const nextRoot = findNextSibling(closedTabId, rootTabs);
+      if (nextRoot) {
+        console.log(`No previous root sibling, found next root sibling (fallback): ${nextRoot.id}`);
+        return nextRoot.id;
+      }
     }
   }
   

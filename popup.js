@@ -392,6 +392,7 @@ async function loadTabTree() {
     
     // 通过消息获取标签页关系缓存
     const tabRelations = await chrome.runtime.sendMessage({ action: 'getTabRelations' }) || {};
+    console.log('🔄 getTabRelations gets:', Object.keys(tabRelations).length);
     
     // 获取当前所有标签页
     const tabs = await chrome.tabs.query({});
