@@ -30,6 +30,11 @@
       }
     }
 
+    html {
+      overflow: hidden;
+      overscroll-behavior-y: none;
+    }
+
     body {
       width: 400px;
       max-height: 600px;
@@ -54,12 +59,30 @@
     }
     
     .tree-container {
-      max-height: 500px;
+      max-height: 491px;
       overflow-y: auto;
       font-family: 'Courier New', monospace;
       line-height: 20px;
       padding-right: 15px;
       margin-right: -5px;
+    }
+    
+    /* 隐藏滚动条凹槽背景 */
+    .tree-container::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    .tree-container::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .tree-container::-webkit-scrollbar-thumb {
+      background: rgba(128, 128, 128, 0.3);
+      border-radius: 4px;
+    }
+    
+    .tree-container::-webkit-scrollbar-thumb:hover {
+      background: rgba(128, 128, 128, 0.5);
     }
     
     .tree-node {

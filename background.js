@@ -1062,112 +1062,115 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 });
 
 // 监听来自popup和content script的消息
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
-  try {
-    if (request.action === 'linkClicked') {
-      // 用户点击了链接，记录父子关系
-      const parentTabId = sender.tab.id;
-      
-      // 等待新标签页创建
-      setTimeout(async () => {
-        try {
-          const tabs = await chrome.tabs.query({ active: true, windowId: sender.tab.windowId });
-          if (tabs.length > 0 && tabs[0].id !== parentTabId) {
-            await setTabParent(tabs[0].id, parentTabId);
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // 处理异步消息，确保 sendResponse 正确工作
+  (async () => {
+    try {
+      if (request.action === 'linkClicked') {
+        // 用户点击了链接，记录父子关系
+        const parentTabId = sender.tab.id;
+        
+        // 等待新标签页创建
+        setTimeout(async () => {
+          try {
+            const tabs = await chrome.tabs.query({ active: true, windowId: sender.tab.windowId });
+            if (tabs.length > 0 && tabs[0].id !== parentTabId) {
+              await setTabParent(tabs[0].id, parentTabId);
+            }
+          } catch (error) {
+            console.error('Error setting parent for clicked link:', error);
           }
-        } catch (error) {
-          console.error('Error setting parent for clicked link:', error);
+          sendResponse({ success: true });
+        }, 100);
+      } else if (request.action === 'markPluginClosed') {
+        // 标记通过插件关闭的标签页
+        if (request.tabIds && Array.isArray(request.tabIds)) {
+          request.tabIds.forEach(tabId => {
+            pluginClosedTabs.add(tabId);
+            console.log(`Marked tab ${tabId} as plugin-closed`);
+          });
         }
-      }, 100);
-    } else if (request.action === 'markPluginClosed') {
-      // 标记通过插件关闭的标签页
-      if (request.tabIds && Array.isArray(request.tabIds)) {
-        request.tabIds.forEach(tabId => {
-          pluginClosedTabs.add(tabId);
-          console.log(`Marked tab ${tabId} as plugin-closed`);
-        });
+        sendResponse({ success: true });
+      } else if (request.action === 'restoreRelations') {
+        // Popup 请求从持久化存储恢复关系
+        console.log('Popup requested restore relations');
+        await persistentStorage.restoreRelations();
+        sendResponse({ success: true });
+      } else if (request.action === 'getHistoryData') {
+        // 获取历史记录数据，同时检查并清理过期的导航状态
+        const NAVIGATION_TIMEOUT = 300; // 固定超时时间300ms
+        const now = Date.now();
+        
+        // 检查导航状态是否过期
+        if (globalTabHistory.isNavigationAction && 
+            globalTabHistory.lastNavigationTime > 0 && 
+            now - globalTabHistory.lastNavigationTime > NAVIGATION_TIMEOUT) {
+          // 自动重置过期的导航状态
+          globalTabHistory.isNavigationAction = false;
+          globalTabHistory.lastNavigationTime = 0;
+          console.log('🧭 Navigation action: INACTIVE (auto-timeout)');
+        }
+        
+        sendResponse(globalTabHistory);
+      } else if (request.action === 'saveHistoryData') {
+        // 保存历史记录数据
+        if (request.historyData) {
+          globalTabHistory = request.historyData;
+          console.log('📚 History data saved:', globalTabHistory);
+        }
+        sendResponse({ success: true });
+      } else if (request.action === 'getTabRelations') {
+        // 获取当前的标签页关系缓存，如果没有值则先恢复数据
+        const tabRelations = storageManager.getTabRelations();
+        if (!tabRelations || Object.keys(tabRelations).length === 0) {
+          // 如果缓存为空，使用同步方法恢复数据
+          const restoredRelations = await storageManager.getTabRelationsSync();
+          console.log('🔄 getTabRelations returns:', Object.keys(restoredRelations).length);
+          sendResponse(restoredRelations);
+        } else {
+          sendResponse(tabRelations);
+        }
+      } else if (request.action === 'saveScrollPosition') {
+        // 保存滚动位置
+        if (request.url && request.position) {
+          await storageManager.saveScrollPosition(request.url, request.position);
+          console.log(`📜 Saved scroll position for ${request.url}:`, request.position);
+        }
+        sendResponse({ success: true });
+      } else if (request.action === 'getScrollPosition') {
+        // 获取滚动位置（同步版本）
+        if (request.url) {
+          const position = storageManager.getScrollPositionSync(request.url);
+          sendResponse(position);
+          console.log(`📜 Retrieved scroll position for ${request.url}:`, position);
+        } else {
+          sendResponse(null);
+        }
+      } else if (request.action === 'removeScrollPosition') {
+        // 移除滚动位置
+        if (request.url) {
+          await storageManager.removeScrollPosition(request.url);
+          console.log(`🗑️ Removed scroll position for ${request.url}`);
+        }
+        sendResponse({ success: true });
+      } else if (request.action === 'isFeatureEnabled') {
+        // 同步检查特定功能是否启用
+        if (request.feature) {
+          const isEnabled = settingsCache.isFeatureEnabled(request.feature);
+          sendResponse({ enabled: isEnabled });
+          console.log(`📜 Feature ${request.feature} enabled:`, isEnabled);
+        } else {
+          sendResponse({ enabled: false });
+        }
       }
-    } else if (request.action === 'restoreRelations') {
-      // Popup 请求从持久化存储恢复关系
-      console.log('Popup requested restore relations');
-      await persistentStorage.restoreRelations();
-    } else if (request.action === 'getHistoryData') {
-      // 获取历史记录数据，同时检查并清理过期的导航状态
-      const NAVIGATION_TIMEOUT = 300; // 固定超时时间300ms
-      const now = Date.now();
-      
-      // 检查导航状态是否过期
-      if (globalTabHistory.isNavigationAction && 
-          globalTabHistory.lastNavigationTime > 0 && 
-          now - globalTabHistory.lastNavigationTime > NAVIGATION_TIMEOUT) {
-        // 自动重置过期的导航状态
-        globalTabHistory.isNavigationAction = false;
-        globalTabHistory.lastNavigationTime = 0;
-        console.log('🧭 Navigation action: INACTIVE (auto-timeout)');
-      }
-      
-      sendResponse(globalTabHistory);
-      return true;
-    } else if (request.action === 'saveHistoryData') {
-      // 保存历史记录数据
-      if (request.historyData) {
-        globalTabHistory = request.historyData;
-        console.log('📚 History data saved:', globalTabHistory);
-      }
-      sendResponse({ success: true });
-      return true;
-    } else if (request.action === 'getTabRelations') {
-      // 获取当前的标签页关系缓存，如果没有值则先恢复数据
-      const tabRelations = storageManager.getTabRelations();
-      if (!tabRelations || Object.keys(tabRelations).length === 0) {
-        // 如果缓存为空，使用同步方法恢复数据
-        const restoredRelations = await storageManager.getTabRelationsSync();
-        console.log('🔄 getTabRelations returns:', Object.keys(restoredRelations).length);
-        sendResponse(restoredRelations);
-      } else {
-        sendResponse(tabRelations);
-      }
-      return true;
-    } else if (request.action === 'saveScrollPosition') {
-      // 保存滚动位置
-      if (request.url && request.position) {
-        await storageManager.saveScrollPosition(request.url, request.position);
-        console.log(`📜 Saved scroll position for ${request.url}:`, request.position);
-      }
-      sendResponse({ success: true });
-      return true;
-    } else if (request.action === 'getScrollPosition') {
-      // 获取滚动位置（同步版本）
-      if (request.url) {
-        const position = storageManager.getScrollPositionSync(request.url);
-        sendResponse(position);
-        console.log(`📜 Retrieved scroll position for ${request.url}:`, position);
-      } else {
-        sendResponse(null);
-      }
-      return true;
-    } else if (request.action === 'removeScrollPosition') {
-      // 移除滚动位置
-      if (request.url) {
-        await storageManager.removeScrollPosition(request.url);
-        console.log(`🗑️ Removed scroll position for ${request.url}`);
-      }
-      sendResponse({ success: true });
-      return true;
-    } else if (request.action === 'isFeatureEnabled') {
-      // 同步检查特定功能是否启用
-      if (request.feature) {
-        const isEnabled = settingsCache.isFeatureEnabled(request.feature);
-        sendResponse({ enabled: isEnabled });
-        console.log(`📜 Feature ${request.feature} enabled:`, isEnabled);
-      } else {
-        sendResponse({ enabled: false });
-      }
-      return true;
+    } catch (error) {
+      console.error('Error handling message:', error);
+      sendResponse({ error: error.message });
     }
-  } catch (error) {
-    console.error('Error handling message:', error);
-  }
+  })();
+  
+  // 返回 true 表示异步响应
+  return true;
 });
 
 // 设置标签页的父标签页

@@ -391,7 +391,41 @@ async function loadTabTree() {
     }
     
     // 通过消息获取标签页关系缓存
-    const tabRelations = await chrome.runtime.sendMessage({ action: 'getTabRelations' }) || {};
+    // 轮询获取tabRelations，直到background初始化完成
+    let tabRelations = {};
+    let attempts = 0;
+    const maxAttempts = 10; // 最多尝试10次 (2秒)
+    
+          while (attempts < maxAttempts) {
+        try {
+          tabRelations = await chrome.runtime.sendMessage({ action: 'getTabRelations' });
+          
+          if (tabRelations !== undefined) {
+            console.log(`🎯 Background ready after ${attempts + 1} attempts, got ${Object.keys(tabRelations).length} relations`);
+            break;
+          } else {
+            attempts++;
+            if (attempts < maxAttempts) {
+              console.log(`⏳ Background not ready yet, attempt ${attempts}/${maxAttempts}, retrying in 100ms...`);
+              await new Promise(resolve => setTimeout(resolve, 200));
+            }
+          }
+        } catch (error) {
+          attempts++;
+          console.log(`❌ Error getting tab relations, attempt ${attempts}/${maxAttempts}:`, error);
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        }
+      }
+      
+      // 确保 tabRelations 是对象
+      tabRelations = tabRelations || {};
+    
+    if (attempts >= maxAttempts) {
+      console.warn('⚠️ Background may not be ready after maximum attempts, proceeding with empty relations');
+    }
+    
     console.log('🔄 getTabRelations gets:', Object.keys(tabRelations).length);
     
     // 获取当前所有标签页
