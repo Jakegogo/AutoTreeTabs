@@ -132,26 +132,57 @@ function isPdfUrl(url) {
 // 书签状态缓存
 const bookmarkCache = new Map();
 
+// 获取书签直接上级文件夹名称
+async function getBookmarkFolderPath(parentId) {
+  if (!parentId) return null;
+  
+  try {
+    const folders = await chrome.bookmarks.get(parentId);
+    if (!folders || folders.length === 0) return null;
+    
+    const folder = folders[0];
+    
+    // 跳过根文件夹（"书签栏"、"其他书签"等），返回null
+    if (!folder.title || !folder.parentId) {
+      return null;
+    }
+    
+    return folder.title;
+  } catch (error) {
+    console.log('Error getting bookmark folder path:', error.message);
+    return null;
+  }
+}
 
 
-// 获取书签信息（包含状态和标题）
+
+// 获取书签信息（包含状态、标题和文件夹路径）
 async function getBookmarkInfo(url, isCurrentTab = false) {
-  if (!url) return { isBookmarked: false, title: null };
+  if (!url) return { isBookmarked: false, title: null, folderPath: null };
   
   // 当前页面不查缓存，直接查询
   if (isCurrentTab) {
     try {
       const bookmarks = await chrome.bookmarks.search({ url: url });
       const isBookmarked = bookmarks && bookmarks.length > 0;
-      const bookmarkTitle = isBookmarked ? bookmarks[0].title : null;
+      let bookmarkTitle = null;
+      let folderPath = null;
       
-      const bookmarkInfo = { isBookmarked, title: bookmarkTitle };
+      if (isBookmarked) {
+        const bookmark = bookmarks[0];
+        bookmarkTitle = bookmark.title;
+        
+        // 获取文件夹路径
+        folderPath = await getBookmarkFolderPath(bookmark.parentId);
+      }
+      
+      const bookmarkInfo = { isBookmarked, title: bookmarkTitle, folderPath };
       bookmarkCache.set(url, bookmarkInfo);
       
       return bookmarkInfo;
     } catch (error) {
       console.log('Error searching bookmarks:', error.message);
-      return { isBookmarked: false, title: null };
+      return { isBookmarked: false, title: null, folderPath: null };
     }
   }
   
@@ -160,9 +191,14 @@ async function getBookmarkInfo(url, isCurrentTab = false) {
     const cachedInfo = bookmarkCache.get(url);
     // 兼容旧格式缓存（boolean）和新格式缓存（object）
     if (typeof cachedInfo === 'boolean') {
-      return { isBookmarked: cachedInfo, title: null };
+      return { isBookmarked: cachedInfo, title: null, folderPath: null };
     } else {
-      return cachedInfo;
+      // 确保返回的对象包含folderPath字段（向后兼容）
+      return {
+        isBookmarked: cachedInfo.isBookmarked || false,
+        title: cachedInfo.title || null,
+        folderPath: cachedInfo.folderPath || null
+      };
     }
   }
   
@@ -170,15 +206,24 @@ async function getBookmarkInfo(url, isCurrentTab = false) {
   try {
     const bookmarks = await chrome.bookmarks.search({ url: url });
     const isBookmarked = bookmarks && bookmarks.length > 0;
-    const bookmarkTitle = isBookmarked ? bookmarks[0].title : null;
+    let bookmarkTitle = null;
+    let folderPath = null;
     
-    const bookmarkInfo = { isBookmarked, title: bookmarkTitle };
+    if (isBookmarked) {
+      const bookmark = bookmarks[0];
+      bookmarkTitle = bookmark.title;
+      
+      // 获取文件夹路径
+      folderPath = await getBookmarkFolderPath(bookmark.parentId);
+    }
+    
+    const bookmarkInfo = { isBookmarked, title: bookmarkTitle, folderPath };
     bookmarkCache.set(url, bookmarkInfo);
     
     return bookmarkInfo;
   } catch (error) {
     console.log('Error searching bookmarks:', error.message);
-    const errorInfo = { isBookmarked: false, title: null };
+    const errorInfo = { isBookmarked: false, title: null, folderPath: null };
     bookmarkCache.set(url, errorInfo);
     return errorInfo;
   }
@@ -627,11 +672,27 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   // 异步获取书签信息，同时更新标题和状态
   const isCurrentTab = node.id === currentTabId;
   getBookmarkInfo(node.url, isCurrentTab).then(bookmarkInfo => {
-    // 更新标题（如果有书签标题）
-    if (bookmarkInfo.isBookmarked && bookmarkInfo.title && bookmarkInfo.title.trim()) {
-      title.textContent = bookmarkInfo.title;
-      title.title = `📖 标题: ${node.title}\n\n${node.url}`;
+    // 构建完整的tooltip信息
+    let tooltipText = `${node.title}`;
+    
+          // 更新标题（如果有书签标题）
+      if (bookmarkInfo.isBookmarked && bookmarkInfo.title && bookmarkInfo.title.trim()) {
+        title.textContent = bookmarkInfo.title;
+        
+        // 如果标题和书签名称相等，只显示标题
+        if (node.title === bookmarkInfo.title) {
+          tooltipText = `📄 标题: ${node.title}`;
+        } else {
+          tooltipText = `📄 标题: ${node.title}\n📖 书签: ${bookmarkInfo.title}`;
+        }
+      }
+    
+    // 添加文件夹路径信息
+    if (bookmarkInfo.isBookmarked && bookmarkInfo.folderPath) {
+      tooltipText += `\n📁 位置: ${bookmarkInfo.folderPath}`;
     }
+    
+    title.title = tooltipText + `\n\n${node.url}`;
     
     // 添加书签状态图标
     if (bookmarkInfo.isBookmarked) {
