@@ -594,7 +594,7 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   const title = document.createElement('div');
   title.className = 'tree-title';
   title.textContent = node.title || node.url;
-  title.title = node.url; // 悬停显示完整URL
+  title.title = `${node.title}\n\n${node.url}`; // 悬停显示完整URL
   nodeElement.appendChild(title);
   
   // 状态显示容器
@@ -622,7 +622,7 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
     // 更新标题（如果有书签标题）
     if (bookmarkInfo.isBookmarked && bookmarkInfo.title && bookmarkInfo.title.trim()) {
       title.textContent = bookmarkInfo.title;
-      title.title = `${node.url}\n📖 标题: ${node.title}`;
+      title.title = `📖 标题: ${node.title}\n\n${node.url}`;
     }
     
     // 添加书签状态图标
