@@ -62,7 +62,7 @@
       max-height: 491px;
       overflow-y: auto;
       font-family: 'Courier New', monospace;
-      line-height: 20px;
+      line-height: 26px;
       padding-right: 15px;
       margin-right: -5px;
     }
@@ -93,7 +93,7 @@
       cursor: pointer;
       border-radius: 3px;
       position: relative;
-      height: 20px;
+      height: 24px;
       border-left: 3px solid transparent;
       box-sizing: border-box;
     }
@@ -184,11 +184,18 @@
     }
     
     .tree-actions {
+      position: absolute;
+      top: 0;
+      right: 0;
       display: flex;
       align-items: center;
       height: 100%;
-      margin-left: auto;
-      flex-shrink: 0;
+      background: var(--bg-color);
+      padding-left: 8px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 10;
+      border-radius: 0 3px 3px 0;
     }
     
     .select-btn-container {
@@ -234,6 +241,10 @@
       background: transparent;
       cursor: pointer;
       opacity: 0;
+    }
+    
+    .tree-node:hover .tree-actions {
+      opacity: 1;
     }
     
     .tree-node:hover .select-btn {

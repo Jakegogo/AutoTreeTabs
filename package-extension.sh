@@ -7,7 +7,7 @@ echo "🚀 开始打包 Auto Tree Tabs 扩展..."
 
 # 创建临时打包目录
 TEMP_DIR="./build-temp"
-ZIP_NAME="auto-tree-tabs-v1.0.0.zip"
+ZIP_NAME="auto-tree-tabs-v1.0.1.zip"
 
 # 清理之前的构建
 if [ -d "$TEMP_DIR" ]; then
