@@ -36,35 +36,47 @@
     }
 
     body {
-      width: 400px;
+      width: 370px;
       max-height: 600px;
-      overflow-y: auto;
+      overflow: visible;
       margin: 0;
-      padding: 10px;
-      font-family: Arial, sans-serif;
+      padding: 0px 0px;
+      font-family: Avenir, "PingFangSC", "Microsoft YaHei", 微软雅黑, sans-serif;
       font-size: 12px;
-      background-color: var(--bg-color);
+      background-color: #f5f5f5;
       color: var(--text-color);
       transition: background-color 0.3s ease, color 0.3s ease;
+      box-sizing: border-box;
+    }
+    
+    .main-container {
+      background-color: var(--bg-color);
+      border-radius: 12px;
+      box-shadow: 
+        0 8px 25px rgba(0, 0, 0, 0.12),
+        0 4px 12px rgba(0, 0, 0, 0.08),
+        0 2px 6px rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
     }
     
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--header-border);
+      margin: 0;
+      padding: 15px;
+      border-bottom: 0.5px solid var(--header-border);
       transition: border-color 0.3s ease;
+      background-color: var(--bg-color);
     }
     
     .tree-container {
-      max-height: 491px;
+      max-height: 458px;
       overflow-y: auto;
-      font-family: 'Courier New', monospace;
+      font-family: Avenir, "PingFangSC", "Microsoft YaHei", 微软雅黑, sans-serif;
       line-height: 26px;
-      padding-right: 15px;
-      margin-right: -5px;
+      padding: 0 15px 20px 15px;
     }
     
     /* 隐藏滚动条凹槽背景 */
@@ -89,7 +101,7 @@
       display: flex;
       align-items: center;
       padding: 0;
-      margin: 0 0 2px 0;
+      margin: 0 0 0 0;
       cursor: pointer;
       border-radius: 3px;
       position: relative;
@@ -122,7 +134,7 @@
     }
     
     .tree-structure {
-      font-family: 'Courier New', monospace;
+      font-family: Avenir, "PingFangSC", "Microsoft YaHei", 微软雅黑, sans-serif;
       color: var(--text-color);
       opacity: 0.6;
       white-space: pre;
@@ -148,7 +160,7 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       margin-right: 4px;
-      font-family: Arial, sans-serif;
+      font-family: Avenir, "PingFangSC", "Microsoft YaHei", 微软雅黑, sans-serif;
       color: var(--text-color);
       transition: color 0.3s ease;
     }
@@ -190,7 +202,9 @@
       display: flex;
       align-items: center;
       height: 100%;
-      background: var(--bg-color);
+      background: rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
       padding-left: 8px;
       opacity: 0;
       transition: opacity 0.2s ease;
@@ -308,8 +322,8 @@
       background: #36f1f4;
       color: white;
       border: none;
-      padding: 5px 10px;
-      border-radius: 3px;
+      padding: 6px 12px;
+      border-radius: 5px;
       cursor: pointer;
       font-size: 11px;
       transition: background-color 0.2s ease, transform 0.1s ease;
@@ -328,8 +342,8 @@
       background: #9C27B0;
       color: white;
       border: none;
-      padding: 5px 10px;
-      border-radius: 3px;
+      padding: 6px 12px;
+      border-radius: 5px;
       cursor: pointer;
       font-size: 11px;
       transition: background-color 0.2s ease, transform 0.1s ease;
@@ -340,15 +354,16 @@
       transform: translateY(-1px);
     }
     
-    /* 导航按钮样式 - 精致圆形设计 */
+    /* 导航按钮样式 */
     .nav-btn {
       width: 24px;
       height: 24px;
       padding: 0;
       margin-right: 4px;
-      border: 1.5px solid #E8E8E8;
-      border-radius: 50%; /* 圆形按钮 */
-      background: linear-gradient(135deg, #f8f8f8, #e8e8e8);
+      margin-top: 2px;
+      border: none;
+      border-radius: 3px;
+      background: transparent;
       color: #666;
       cursor: pointer;
       font-size: 11px;
@@ -357,86 +372,88 @@
       align-items: center;
       justify-content: center;
       transition: all 0.15s ease;
-      box-shadow: 
-        1px 1px 3px rgba(0,0,0,0.08), 
-        inset -0.5px -0.5px 1px rgba(0,0,0,0.06);
       position: relative;
     }
 
     .nav-btn:hover:not(:disabled) {
-      background: linear-gradient(135deg, #ffffff, #f0f0f0);
-      border-color: #4CAF50;
+      background: rgba(76, 175, 80, 0.1);
       color: #4CAF50;
       transform: translateY(-0.5px);
-      box-shadow: 
-        2px 2px 6px rgba(0,0,0,0.12), 
-        inset -0.5px -0.5px 1.5px rgba(0,0,0,0.08);
     }
 
     .nav-btn:active:not(:disabled) {
       transform: translateY(0px);
-      background: linear-gradient(135deg, #f0f0f0, #e8e8e8);
-      box-shadow: 
-        0.5px 0.5px 2px rgba(0,0,0,0.15), 
-        inset 0.5px 0.5px 1px rgba(0,0,0,0.08);
+      background: rgba(76, 175, 80, 0.2);
     }
 
     .nav-btn:disabled {
       opacity: 0.35;
       cursor: not-allowed;
-      background: linear-gradient(135deg, #f5f5f5, #eeeeee);
-      border-color: #D0D0D0;
+      background: transparent;
       color: #aaa;
       transform: none;
-      box-shadow: 0.5px 0.5px 2px rgba(0,0,0,0.04);
     }
 
     /* 暗色主题适配 */
     @media (prefers-color-scheme: dark) {
-      .nav-btn {
-        background: linear-gradient(135deg, #3a3a3a, #2a2a2a);
-        border-color: #484848;
-        color: #bbb;
+      body {
+        background-color: #1a1a1a;
+      }
+      
+      .main-container {
         box-shadow: 
-          1px 1px 3px rgba(0,0,0,0.25), 
-          inset -0.5px -0.5px 1px rgba(255,255,255,0.06);
+          0 10px 30px rgba(0, 0, 0, 0.25),
+          0 6px 16px rgba(0, 0, 0, 0.18),
+          0 3px 8px rgba(0, 0, 0, 0.12);
+      }
+      
+      .tree-actions {
+        background: rgba(45, 45, 45, 0.3);
+      }
+      
+      .nav-btn {
+        background: transparent;
+        color: #bbb;
       }
 
       .nav-btn:hover:not(:disabled) {
-        background: linear-gradient(135deg, #4a4a4a, #3a3a3a);
-        border-color: #66BB6A;
+        background: rgba(102, 187, 106, 0.1);
         color: #66BB6A;
-        box-shadow: 
-          2px 2px 6px rgba(0,0,0,0.3), 
-          inset -0.5px -0.5px 1.5px rgba(255,255,255,0.08);
       }
 
       .nav-btn:active:not(:disabled) {
-        background: linear-gradient(135deg, #2a2a2a, #3a3a3a);
-        box-shadow: 
-          0.5px 0.5px 2px rgba(0,0,0,0.4), 
-          inset 0.5px 0.5px 1px rgba(255,255,255,0.06);
+        background: rgba(102, 187, 106, 0.2);
       }
 
       .nav-btn:disabled {
-        background: linear-gradient(135deg, #2a2a2a, #202020);
-        border-color: #333333;
+        background: transparent;
         color: #555;
-        box-shadow: 0.5px 0.5px 2px rgba(0,0,0,0.15);
       }
     }
 
     /* 搜索框样式 */
     .search-container {
       position: relative;
-      margin-bottom: 10px;
+      margin: 15px 15px;
       display: flex;
       align-items: center;
     }
 
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-color);
+      opacity: 0.6;
+      font-size: 14px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
     .search-input {
       flex: 1;
-      padding: 5px 30px 5px 12px;
+      padding: 5px 30px 5px 35px;
       border: 2px solid var(--border-color);
       border-radius: 20px;
       background-color: var(--bg-color);
@@ -518,25 +535,28 @@
   </style>
 </head>
 <body>
-  <div class="header">
-    <h3 style="margin: 0;">Tab Tree</h3>
-    <div class="header-buttons">
-      <button class="nav-btn back-btn" id="backBtn" data-i18n-title="backBtn">&lt;</button>
-      <button class="nav-btn forward-btn" id="forwardBtn" data-i18n-title="forwardBtn">&gt;</button>
-      <button class="export-btn" id="exportBtn" data-i18n="exportBtn">Export</button>
-      <button class="organize-btn" id="organizeBtn" data-i18n="organizeBtn">Organize</button>
-      <!-- <button class="refresh-btn" id="refreshBtn">Refresh</button> -->
+  <div class="main-container">
+    <div class="header">
+      <h3 style="margin: 0; font-size: 16px; font-weight: 600;">Tab Tree</h3>
+      <div class="header-buttons">
+        <button class="nav-btn back-btn" id="backBtn" data-i18n-title="backBtn">‹</button>
+        <button class="nav-btn forward-btn" id="forwardBtn" data-i18n-title="forwardBtn">›</button>
+        <button class="export-btn" id="exportBtn" data-i18n="exportBtn">Export</button>
+        <button class="organize-btn" id="organizeBtn" data-i18n="organizeBtn">Organize</button>
+        <!-- <button class="refresh-btn" id="refreshBtn">Refresh</button> -->
+      </div>
     </div>
-  </div>
-  
-  <!-- 搜索框 -->
-  <div class="search-container">
-    <input type="text" id="searchInput" class="search-input" data-i18n-placeholder="searchPlaceholder" autocomplete="off">
-    <button class="clear-search-btn" id="clearSearchBtn" data-i18n-title="clearSearchBtn">×</button>
-  </div>
-  
-  <div class="tree-container" id="treeContainer">
-    <!-- Tree nodes will be generated here -->
+    
+    <!-- 搜索框 -->
+    <div class="search-container">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" class="search-input" data-i18n-placeholder="searchPlaceholder" autocomplete="off">
+      <button class="clear-search-btn" id="clearSearchBtn" data-i18n-title="clearSearchBtn">×</button>
+    </div>
+    
+    <div class="tree-container" id="treeContainer">
+      <!-- Tree nodes will be generated here -->
+    </div>
   </div>
   
   <script src="history.js"></script>
