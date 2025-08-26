@@ -134,6 +134,39 @@
       transition: background-color 0.2s ease;
     }
     
+    /* 未加载标签页样式 */
+    .tree-node.unloaded {
+      opacity: 0.95;
+      transition: opacity 0.2s ease;
+    }
+    
+    .tree-node.unloaded .tree-title {
+      color: var(--text-color);
+      opacity: 0.95;
+      /* font-style: italic; */
+      transition: opacity 0.2s ease, font-style 0.2s ease;
+    }
+    
+    .tree-node.unloaded .tree-icon {
+      opacity: 0.6;
+      filter: grayscale(70%);
+      transition: opacity 0.2s ease, filter 0.2s ease;
+    }
+    
+    /* hover状态下恢复原本透明度 */
+    .tree-node.unloaded:hover {
+      opacity: 1;
+    }
+    
+    .tree-node.unloaded:hover .tree-title {
+      opacity: 1;
+    }
+    
+    .tree-node.unloaded:hover .tree-icon {
+      opacity: 1;
+      filter: grayscale(0%);
+    }
+    
     .tree-structure {
       font-family: Avenir, "PingFangSC", "Microsoft YaHei", 微软雅黑, sans-serif;
       color: var(--text-color);
@@ -148,7 +181,7 @@
     .tree-icon {
       width: 16px;
       height: 16px;
-      margin-right: 4px;
+      margin-right: 10px;
       background-size: contain;
       flex-shrink: 0;
       background-repeat: no-repeat;
@@ -399,6 +432,25 @@
     @media (prefers-color-scheme: dark) {
       body {
         background-color: #1a1a1a;
+      }
+      
+      .tree-node.unloaded .tree-title {
+        opacity: 0.9;
+      }
+      
+      .tree-node.unloaded .tree-icon {
+        opacity: 0.6;
+        filter: grayscale(70%);
+      }
+      
+      /* 暗色模式下的hover效果 */
+      .tree-node.unloaded:hover .tree-title {
+        opacity: 1;
+      }
+      
+      .tree-node.unloaded:hover .tree-icon {
+        opacity: 1;
+        filter: grayscale(0%);
       }
       
       .main-container {

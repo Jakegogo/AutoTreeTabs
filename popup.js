@@ -534,6 +534,14 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
     nodeElement.classList.add('current-tab');
   }
   
+  // 检查标签页是否未加载
+  // Chrome中discarded表示标签页被丢弃（未加载状态）
+  // status字段可能为'unloaded'或'loading'
+  if (node.discarded || node.status === 'unloaded') {
+    nodeElement.classList.add('unloaded');
+    // console.log('🔄 Unloaded tab detected:', node.id, node.title, 'discarded:', node.discarded, 'status:', node.status);
+  }
+  
   // 生成树形结构符号
   const treeStructure = document.createElement('span');
   treeStructure.className = 'tree-structure';
@@ -1329,6 +1337,59 @@ window.debugPopup = {
       });
       
       return testUrls.map(url => ({ url, isPdf: isPdfUrl(url) }));
+    }
+  },
+  
+  // 标签页状态调试工具
+  tabStatus: {
+    // 检查所有标签页的加载状态
+    checkAllTabs: async () => {
+      try {
+        const tabs = await chrome.tabs.query({});
+        const statusInfo = tabs.map(tab => ({
+          id: tab.id,
+          title: tab.title,
+          url: tab.url,
+          active: tab.active,
+          discarded: tab.discarded,
+          status: tab.status,
+          loaded: tab.status === 'complete'
+        }));
+        
+        console.log('🔄 All tabs status:');
+        console.table(statusInfo);
+        
+        const unloadedTabs = statusInfo.filter(tab => tab.discarded || tab.status === 'unloaded');
+        console.log('📴 Unloaded tabs count:', unloadedTabs.length);
+        
+        return statusInfo;
+      } catch (error) {
+        console.error('Error checking tab status:', error);
+        return [];
+      }
+    },
+    
+    // 检查DOM中unloaded类的应用情况
+    checkUnloadedNodes: () => {
+      const unloadedNodes = document.querySelectorAll('.tree-node.unloaded');
+      const allNodes = document.querySelectorAll('.tree-node');
+      
+      console.log('🎨 Unloaded nodes in DOM:', unloadedNodes.length, '/', allNodes.length);
+      
+      const unloadedInfo = Array.from(unloadedNodes).map(node => ({
+        tabId: node.dataset.tabId,
+        title: node.querySelector('.tree-title')?.textContent,
+        url: node.dataset.tabUrl
+      }));
+      
+      console.table(unloadedInfo);
+      return unloadedInfo;
+    },
+    
+    // 手动刷新unloaded状态
+    refreshUnloadedStatus: async () => {
+      console.log('🔄 Refreshing unloaded status...');
+      await loadTabTree();
     }
   }
 };
