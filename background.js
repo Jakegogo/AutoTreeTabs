@@ -728,9 +728,7 @@ setTimeout(async () => {
 // 全局历史记录存储（多个标签页共享）
 let globalTabHistory = {
   history: [],
-  currentIndex: -1,
-  isNavigationAction: false,
-  lastNavigationTime: 0
+  currentIndex: -1
 };
 
 // 标签页关闭方向追踪（简单索引方案）
@@ -1051,7 +1049,37 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   } catch (error) {
     console.log('Error injecting content script on tab activation:', error);
   }
+  try {
+    addTabToHistory(activeInfo.tabId);
+  } catch (error) {
+    console.log('Error injecting content script on tab activation:', error);
+  }
 });
+
+
+// 添加新的标签页到历史记录
+function addTabToHistory(tabId) {
+  const data = globalTabHistory;
+  
+  // 如果新标签页不是当前标签页，则添加到历史记录
+  if (data.history[data.currentIndex] !== tabId) {
+    // 如果当前不在历史记录的末尾，删除后面的记录
+    if (data.currentIndex < data.history.length - 1) {
+      data.history = data.history.slice(0, data.currentIndex + 1);
+    }
+    
+    data.history.push(tabId);
+    data.currentIndex++;
+
+    // 限制历史记录大小
+    if (data.history.length > this.maxHistorySize) {
+      data.history.shift();
+      data.currentIndex--;
+    }
+    globalTabHistory = data;
+    console.log(`📚 History added: ${tabId}, index: ${data.currentIndex}, history: [${data.history.join(', ')}]`);
+  }
+}
 
 // 标签页更新时按需注入content script
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
@@ -1097,20 +1125,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         await persistentStorage.restoreRelations();
         sendResponse({ success: true });
       } else if (request.action === 'getHistoryData') {
-        // 获取历史记录数据，同时检查并清理过期的导航状态
-        const NAVIGATION_TIMEOUT = 300; // 固定超时时间300ms
-        const now = Date.now();
-        
-        // 检查导航状态是否过期
-        if (globalTabHistory.isNavigationAction && 
-            globalTabHistory.lastNavigationTime > 0 && 
-            now - globalTabHistory.lastNavigationTime > NAVIGATION_TIMEOUT) {
-          // 自动重置过期的导航状态
-          globalTabHistory.isNavigationAction = false;
-          globalTabHistory.lastNavigationTime = 0;
-          console.log('🧭 Navigation action: INACTIVE (auto-timeout)');
-        }
-        
         sendResponse(globalTabHistory);
       } else if (request.action === 'saveHistoryData') {
         // 保存历史记录数据

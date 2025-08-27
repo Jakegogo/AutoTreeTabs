@@ -284,6 +284,7 @@ function activateTabAndWindow(tabId) {
   });
 }
 
+
 // 关闭选中的标签页或当前节点及其子节点
 async function closeSelectedOrCurrent(node) {
   let tabsToClose = [];
@@ -339,27 +340,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // 绑定前进后退按钮事件
   document.getElementById('backBtn').addEventListener('click', async () => {
-    if (window.tabHistory) {
-      // 设置导航状态
-      await NavigationHelper.setNavigating();
-      
+    if (window.tabHistory) {      
       const prevTabId = await window.tabHistory.getPreviousTab();
       if (prevTabId) {
         activateTabAndWindow(prevTabId);
-        await updateNavigationButtons();
       }
     }
   });
   
   document.getElementById('forwardBtn').addEventListener('click', async () => {
     if (window.tabHistory) {
-      // 设置导航状态
-      await NavigationHelper.setNavigating();
-      
       const nextTabId = await window.tabHistory.getNextTab();
       if (nextTabId) {
         activateTabAndWindow(nextTabId);
-        await updateNavigationButtons();
       }
     }
   });
@@ -393,27 +386,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   calculateTreeHeight();
   // 滚动到当前标签页
   scrollToCurrentTab();
-
-  if (activeTab) {
-    addCurrentTabToHistory(activeTab.id);
-  }
-
   // 初始化导航按钮状态
   updateNavigationButtons();
 });
-
-async function addCurrentTabToHistory(tabId) {
-  // 检查是否正在导航操作，只有非导航时才添加到历史记录
-  const isNavigating = await NavigationHelper.isNavigating();
-  console.log('📚 DOMContentLoaded:', tabId, 'isNavigating:', isNavigating);
-  
-  if (window.tabHistory && !isNavigating) {
-    await window.tabHistory.addTab(tabId);
-    console.log('📚 Added current tab to history during init:', tabId);
-  } else if (isNavigating) {
-    console.log('📚 Skipped adding to history during init (navigating):', tabId);
-  }
-}
 
 
 
@@ -543,7 +518,6 @@ async function removeTabElements(tabIds) {
   // 同时从历史记录中移除已关闭的标签页
   if (window.tabHistory) {
     await window.tabHistory.removeTabsFromHistory(tabIds);
-    await updateNavigationButtons();
   }
 }
 
@@ -903,72 +877,20 @@ async function closeTabAndChildren(node) {
  */
 const NavigationHelper = {
   /**
-   * 设置导航状态为活跃
-   */
-  async setNavigating() {
-    try {
-      const historyData = await chrome.runtime.sendMessage({ action: 'getHistoryData' });
-      if (historyData) {
-        historyData.isNavigationAction = true;
-        historyData.lastNavigationTime = Date.now();
-        await chrome.runtime.sendMessage({ action: 'saveHistoryData', historyData });
-        console.log('🧭 Navigation action: ACTIVE');
-      }
-    } catch (error) {
-      console.error('Error setting navigation state:', error);
-    }
-  },
-
-  /**
    * 检查当前是否处于导航状态
    * @returns {Promise<boolean>} 是否正在导航
    */
   async isNavigating() {
     try {
       const historyData = await chrome.runtime.sendMessage({ action: 'getHistoryData' });
-      return historyData ? historyData.isNavigationAction : false;
+      return historyData ? historyData.currentIndex == historyData.history.length - 1 : false;
     } catch (error) {
       console.error('Error getting navigation state:', error);
       return false;
     }
-  },
-
-  /**
-   * 手动重置导航状态
-   */
-  async resetNavigating() {
-    try {
-      const historyData = await chrome.runtime.sendMessage({ action: 'getHistoryData' });
-      if (historyData) {
-        historyData.isNavigationAction = false;
-        historyData.lastNavigationTime = 0;
-        await chrome.runtime.sendMessage({ action: 'saveHistoryData', historyData });
-        console.log('🧭 Navigation action: INACTIVE (manual-reset)');
-      }
-    } catch (error) {
-      console.error('Error resetting navigation state:', error);
-    }
   }
 };
 
-// 重写activateTabAndWindow的历史记录部分
-const originalActivateTabAndWindow = activateTabAndWindow;
-activateTabAndWindow = async function(tabId) {
-  // 检查是否正在导航操作
-  const isNavigating = await NavigationHelper.isNavigating();
-  
-  // 更新当前标签页ID并添加到历史记录（只有非导航操作才添加）
-  if (!isNavigating && window.tabHistory) {
-    await window.tabHistory.addTab(tabId);
-    await updateNavigationButtons();
-    console.log('📚 Added tab to history (not navigating):', tabId);
-  } else if (isNavigating) {
-    console.log('📚 Skipped adding to history (navigating):', tabId);
-  }
-  
-  // 调用原始函数
-  originalActivateTabAndWindow(tabId);
-};
 
 // ===================
 // 搜索功能实现
@@ -1374,8 +1296,7 @@ window.debugPopup = {
   // 导航状态调试工具
   navigation: {
     isNavigating: () => NavigationHelper.isNavigating(),
-    setNavigating: () => NavigationHelper.setNavigating(),
-    resetNavigating: () => NavigationHelper.resetNavigating()
+    setNavigating: () => NavigationHelper.setNavigating()
   },
   // PDF检测调试工具
   pdf: {
