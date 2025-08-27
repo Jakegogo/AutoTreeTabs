@@ -35,13 +35,13 @@ class TabHistory {
   async addTab(tabId) {
     const data = await this.getHistoryData();
     
-    // 如果当前不在历史记录的末尾，删除后面的记录
-    if (data.currentIndex < data.history.length - 1) {
-      data.history = data.history.slice(0, data.currentIndex + 1);
-    }
-
     // 如果新标签页不是当前标签页，则添加到历史记录
     if (data.history[data.currentIndex] !== tabId) {
+      // 如果当前不在历史记录的末尾，删除后面的记录
+      if (data.currentIndex < data.history.length - 1) {
+        data.history = data.history.slice(0, data.currentIndex + 1);
+      }
+
       data.history.push(tabId);
       data.currentIndex++;
 
@@ -50,10 +50,10 @@ class TabHistory {
         data.history.shift();
         data.currentIndex--;
       }
-    }
 
-    await this.saveHistoryData(data);
-    console.log(`📚 History added: ${tabId}, index: ${data.currentIndex}, history: [${data.history.join(', ')}]`);
+      await this.saveHistoryData(data);
+      console.log(`📚 History added: ${tabId}, index: ${data.currentIndex}, history: [${data.history.join(', ')}]`);
+    }
   }
 
   // 获取上一个标签页ID
