@@ -207,11 +207,18 @@ class StorageManager {
     this.persistentTreeCache = null;
     this.tabRelationsCache = {}; // 仅内存缓存，不持久化
     this.scrollPositionsCache = null; // 滚动位置缓存，需要持久化
+    // 全局历史记录存储（多个标签页共享）, 仅当前窗口会话存储(关闭窗口后丢失)
+    this.globalTabHistory = {
+      history: [],
+      currentIndex: -1
+    };
     this.writeTimer = null;
     this.isWriting = false; // 写入执行状态标记
     this.pendingWrite = false; // 是否有待处理的写入请求
-    this.WRITE_INTERVAL = 3000; // 3秒写入间隔
+    this.WRITE_INTERVAL = 5000; // 5秒写入间隔
+    this.maxHistorySize = 30; // 全局历史记录大小限制
   }
+  
   // 获取persistentTree
   async getPersistentTree() {
     if (!this.persistentTreeCache) {
@@ -288,10 +295,10 @@ class StorageManager {
   }
 
   // 获取特定URL的滚动位置（同步版本）
-  getScrollPositionSync(url) {
+  async getScrollPositionSync(url) {
     if (!this.scrollPositionsCache) {
       // 如果缓存未加载，触发异步加载但返回null
-      this.getScrollPositions().catch(error => {
+      await this.getScrollPositions().catch(error => {
         console.error('Error loading scroll positions cache:', error);
       });
       return null;
@@ -335,6 +342,53 @@ class StorageManager {
     }
   }
 
+  // 获取全局历史记录
+  async getGlobalTabHistorySync() {
+    if (!this.globalTabHistory) {
+      const result = await chrome.storage.local.get(['globalTabHistory']);
+      this.globalTabHistory = result.globalTabHistory || { history: [], currentIndex: -1 };
+    }
+    return this.globalTabHistory;
+  }
+
+  // 添加到全局历史记录
+  async addToGlobalTabHistory(tabId) {
+    const data = this.globalTabHistory;
+  
+    // 如果新标签页不是当前标签页，则添加到历史记录
+    if (data.history[data.currentIndex] !== tabId) {
+      // 如果当前不在历史记录的末尾，删除后面的记录
+      if (data.currentIndex < data.history.length - 1) {
+        data.history = data.history.slice(0, data.currentIndex + 1);
+      }
+      
+      data.history.push(tabId);
+      data.currentIndex++;
+
+      // 限制历史记录大小
+      if (data.history.length > this.maxHistorySize) {
+        data.history.shift();
+        data.currentIndex--;
+      }
+      this.globalTabHistory = data;
+      this.scheduleWrite();
+      console.log(`📚 History added: ${tabId}, index: ${data.currentIndex}, history: [${data.history.join(', ')}]`);
+    }
+  }
+
+  saveGlobalTabHistory(data) {
+    this.globalTabHistory = data;
+    this.scheduleWrite();
+    console.log('📚 History data saved:', data);
+  }
+
+  // 清空全局历史记录
+  clearGlobalTabHistory() {
+    this.globalTabHistory = { history: [], currentIndex: -1 };
+    this.scheduleWrite();
+    console.log('🗑️ Global tab history cleared');
+  }
+
   // 调度写入 - 并发安全版本
   scheduleWrite() {
     // 如果正在执行写入，标记有待处理的写入请求
@@ -366,8 +420,10 @@ class StorageManager {
           if (this.scrollPositionsCache) {
             dataToWrite.scrollPositions = this.scrollPositionsCache;
           }
-          
-          // tabRelations 不再持久化，仅保存在内存中
+
+          if (this.globalTabHistory) {
+            dataToWrite.globalTabHistory = this.globalTabHistory;
+          }
           
           if (Object.keys(dataToWrite).length > 0) {
             console.log(`💾 Writing cached data to storage:`, Object.keys(dataToWrite));
@@ -725,11 +781,6 @@ setTimeout(async () => {
   }
 }, 5000); // 5秒后执行
 
-// 全局历史记录存储（多个标签页共享）
-let globalTabHistory = {
-  history: [],
-  currentIndex: -1
-};
 
 // 标签页关闭方向追踪（简单索引方案）
 let tabCloseDirection = {
@@ -1050,36 +1101,12 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     console.log('Error injecting content script on tab activation:', error);
   }
   try {
-    addTabToHistory(activeInfo.tabId);
+    storageManager.addToGlobalTabHistory(activeInfo.tabId);
   } catch (error) {
     console.log('Error injecting content script on tab activation:', error);
   }
 });
 
-
-// 添加新的标签页到历史记录
-function addTabToHistory(tabId) {
-  const data = globalTabHistory;
-  
-  // 如果新标签页不是当前标签页，则添加到历史记录
-  if (data.history[data.currentIndex] !== tabId) {
-    // 如果当前不在历史记录的末尾，删除后面的记录
-    if (data.currentIndex < data.history.length - 1) {
-      data.history = data.history.slice(0, data.currentIndex + 1);
-    }
-    
-    data.history.push(tabId);
-    data.currentIndex++;
-
-    // 限制历史记录大小
-    if (data.history.length > this.maxHistorySize) {
-      data.history.shift();
-      data.currentIndex--;
-    }
-    globalTabHistory = data;
-    console.log(`📚 History added: ${tabId}, index: ${data.currentIndex}, history: [${data.history.join(', ')}]`);
-  }
-}
 
 // 标签页更新时按需注入content script
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
@@ -1125,12 +1152,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         await persistentStorage.restoreRelations();
         sendResponse({ success: true });
       } else if (request.action === 'getHistoryData') {
-        sendResponse(globalTabHistory);
+        sendResponse(await storageManager.getGlobalTabHistorySync());
       } else if (request.action === 'saveHistoryData') {
         // 保存历史记录数据
         if (request.historyData) {
-          globalTabHistory = request.historyData;
-          console.log('📚 History data saved:', globalTabHistory);
+          storageManager.saveGlobalTabHistory(request.historyData);
         }
         sendResponse({ success: true });
       } else if (request.action === 'getTabRelations') {
@@ -1154,7 +1180,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       } else if (request.action === 'getScrollPosition') {
         // 获取滚动位置（同步版本）
         if (request.url) {
-          const position = storageManager.getScrollPositionSync(request.url);
+          const position = await storageManager.getScrollPositionSync(request.url);
           sendResponse(position);
           console.log(`📜 Retrieved scroll position for ${request.url}:`, position);
         } else {
@@ -1488,6 +1514,8 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
     // 完全清除内存中的标签关系，依赖持久化存储恢复
     storageManager.removeTabRelations();
     console.log('✅ All tabRelations cleared on window close');
+    storageManager.clearGlobalTabHistory();
+    console.log('✅ Global tab history cleared on window close');
   } catch (error) {
     console.error('Error clearing tabRelations on window close:', error);
   }
