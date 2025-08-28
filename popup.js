@@ -388,6 +388,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   scrollToCurrentTab();
   // 初始化导航按钮状态
   updateNavigationButtons();
+  // 初始化国际化
+  initI18n();
 });
 
 

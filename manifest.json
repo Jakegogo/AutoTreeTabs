@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "__MSG_appName__",
+  "name": "AutoTreeTabs",
   "version": "1.0.1",
-  "description": "__MSG_appDesc__",
+  "description": "Free yourself from chaotic tabs! Good ideas need good organization support.",
   "default_locale": "en",
   "author": "Jake",
   "homepage_url": "https://github.com/Jakegogo/AutoTreeTabs",
