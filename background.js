@@ -208,17 +208,14 @@ class StorageManager {
     this.tabRelationsCache = {}; // 仅内存缓存，不持久化
     this.scrollPositionsCache = null; // 滚动位置缓存，需要持久化
     // 全局历史记录存储（多个标签页共享）, 仅当前窗口会话存储(关闭窗口后丢失)
-    this.globalTabHistory = {
-      history: [],
-      currentIndex: -1
-    };
+    this.globalTabHistory = null;
     this.writeTimer = null;
     this.isWriting = false; // 写入执行状态标记
     this.pendingWrite = false; // 是否有待处理的写入请求
     this.WRITE_INTERVAL = 5000; // 5秒写入间隔
     this.maxHistorySize = 30; // 全局历史记录大小限制
   }
-  
+
   // 获取persistentTree
   async getPersistentTree() {
     if (!this.persistentTreeCache) {
@@ -353,7 +350,7 @@ class StorageManager {
 
   // 添加到全局历史记录
   async addToGlobalTabHistory(tabId) {
-    const data = this.globalTabHistory;
+    const data = this.globalTabHistory || { history: [], currentIndex: -1 };
   
     // 如果新标签页不是当前标签页，则添加到历史记录
     if (data.history[data.currentIndex] !== tabId) {
@@ -384,7 +381,7 @@ class StorageManager {
 
   // 清空全局历史记录
   clearGlobalTabHistory() {
-    this.globalTabHistory = { history: [], currentIndex: -1 };
+    this.globalTabHistory = null;
     this.scheduleWrite();
     console.log('🗑️ Global tab history cleared');
   }
