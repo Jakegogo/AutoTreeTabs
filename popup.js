@@ -1304,7 +1304,7 @@ function calculateTreeHeight() {
   }
   
   // 计算可用高度，保留20px安全边距
-  const availableHeight = popupHeight - usedHeight - 20;
+  const availableHeight = popupHeight - usedHeight - 30;
   
   // 设置最小高度200px，最大高度500px
   const finalHeight = Math.max(200, Math.min(500, availableHeight));
