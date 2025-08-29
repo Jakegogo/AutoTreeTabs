@@ -726,7 +726,7 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   // 使用内嵌span控制视觉高度
   const pinIcon = document.createElement('span');
   pinIcon.className = 'pin-icon';
-  pinIcon.textContent = '⇧';
+  pinIcon.textContent = '⬆';
   pinBtn.appendChild(pinIcon);
   pinBtn.title = i18n('pinToTop') || 'Pin to top';
   
