@@ -163,12 +163,8 @@ class TabTreePersistentStorage {
         }
       });
       
-      if (restoredCount > 0) {
-        storageManager.saveTabRelations(restoredRelations);
-        console.log(`🎉 Total restored: ${restoredCount} relations (${unmatchedCount} unmatched)`);
-      } else {
-        console.log(`❌ No relations could be restored (${unmatchedCount} unmatched)`);
-      }
+      storageManager.saveTabRelations(restoredRelations);
+      console.log(`🎉 Total restored: ${restoredCount} relations (${unmatchedCount} unmatched)`);
       
       return restoredRelations;
     } catch (error) {
