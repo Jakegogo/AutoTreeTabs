@@ -71,6 +71,13 @@ const FILE_TYPE_CONFIG = {
     title: 'imageFile',
     bgColor: 'transparent'
   },
+  markdown: {
+    extensions: ['.md', '.markdown'],
+    protocols: ['file://', 'chrome-extension://'],
+    icon: 'icon-md.svg',
+    title: 'markdownFile',
+    bgColor: 'transparent'
+  },
   // 🔮 未来可扩展更多格式：
   // doc: { extensions: ['.doc', '.docx'], icon: 'icon-word.svg', title: 'Word文档' },
   // xls: { extensions: ['.xls', '.xlsx'], icon: 'icon-excel.svg', title: 'Excel文档' },
