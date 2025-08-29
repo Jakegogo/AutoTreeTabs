@@ -80,7 +80,7 @@
     "description": "设置页面标题"
   },
   "generalSettings": {
-    "message": "常规设置",
+    "message": "⚙️ 常规设置",
     "description": "常规设置部分"
   },
   "enableScrollRestore": {
@@ -254,6 +254,18 @@
     "message": "已添加到书签",
     "description": "书签添加提示"
   },
+  "tooltipTitleLabel": {
+    "message": "标题",
+    "description": "提示：页面标题标签"
+  },
+  "tooltipBookmarkLabel": {
+    "message": "书签",
+    "description": "提示：书签标题标签"
+  },
+  "tooltipFolderLabel": {
+    "message": "位置",
+    "description": "提示：文件夹路径标签"
+  },
   "selectNode": {
     "message": "选中该节点及所有子节点",
     "description": "选择按钮提示"
@@ -275,5 +287,97 @@
         "example": "3"
       }
     }
+  },
+  "statsTitle": {
+    "message": "📊 统计",
+    "description": "统计区块标题"
+  },
+  "statsDesc": {
+    "message": "当前存储使用与统计信息",
+    "description": "统计区块说明"
+  },
+  "statTabRelations": {
+    "message": "标签页关系",
+    "description": "标签页关系标签"
+  },
+  "statPersistentRelations": {
+    "message": "持久关系",
+    "description": "持久关系标签"
+  },
+  "statStorageSize": {
+    "message": "存储大小 (KB)",
+    "description": "存储大小标签"
+  },
+  "autoRestoreTitle": {
+    "message": "自动恢复关系",
+    "description": "自动恢复标题"
+  },
+  "autoRestoreDesc": {
+    "message": "浏览器重启时自动恢复标签页关系",
+    "description": "自动恢复说明"
+  },
+  "smartSwitchTitle": {
+    "message": "智能标签切换",
+    "description": "智能切换标题"
+  },
+  "smartSwitchDesc": {
+    "message": "关闭当前标签页时自动切换到相关标签页",
+    "description": "智能切换说明"
+  },
+  "dataMgmtTitle": {
+    "message": "🗑️ 数据管理",
+    "description": "数据管理标题"
+  },
+  "dataMgmtDesc": {
+    "message": "管理已存储的数据并重置扩展状态",
+    "description": "数据管理说明"
+  },
+  "clearAllTitle": {
+    "message": "清除所有数据",
+    "description": "清除所有数据标题"
+  },
+  "clearAllDesc": {
+    "message": "移除所有标签页关系和持久存储数据。该操作不可撤销。",
+    "description": "清除所有数据说明"
+  },
+  "clearAllBtn": {
+    "message": "清除所有数据",
+    "description": "清除所有数据按钮"
+  },
+  "exportDataTitle": {
+    "message": "导出数据",
+    "description": "导出数据标题"
+  },
+  "exportDataDesc": {
+    "message": "导出当前的标签页关系以备份",
+    "description": "导出数据说明"
+  },
+  "exportDataBtn": {
+    "message": "导出数据",
+    "description": "导出数据按钮"
+  },
+  "aboutTitle": {
+    "message": "ℹ️ 关于",
+    "description": "关于区块标题"
+  },
+  "aboutDesc": {
+    "message": "扩展信息与版本详情",
+    "description": "关于区块说明"
+  },
+  "versionTitle": {
+    "message": "版本",
+    "description": "版本标题"
+  },
+  "versionDesc": {
+    "message": "当前扩展版本",
+    "description": "版本说明"
+  },
+  "developerTitle": {
+    "message": "开发者",
+    "description": "开发者标题"
+  },
+  "developerDesc": {
+    "message": "扩展开发者信息",
+    "description": "开发者说明"
   }
 }

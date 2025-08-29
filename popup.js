@@ -664,15 +664,15 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
         
         // 如果标题和书签名称相等，只显示标题
         if (node.title === bookmarkInfo.title) {
-          tooltipText = `📄 标题: ${node.title}`;
+          tooltipText = `📄 ${i18n('tooltipTitleLabel')}: ${node.title}`;
         } else {
-          tooltipText = `📄 标题: ${node.title}\n📖 书签: ${bookmarkInfo.title}`;
+          tooltipText = `📄 ${i18n('tooltipTitleLabel')}: ${node.title}\n📖 ${i18n('tooltipBookmarkLabel')}: ${bookmarkInfo.title}`;
         }
       }
     
     // 添加文件夹路径信息
     if (bookmarkInfo.isBookmarked && bookmarkInfo.folderPath) {
-      tooltipText += `\n📁 位置: ${bookmarkInfo.folderPath}`;
+      tooltipText += `\n📁 ${i18n('tooltipFolderLabel')}: ${bookmarkInfo.folderPath}`;
     }
     
     title.title = tooltipText + `\n\n${node.url}`;

@@ -81,7 +81,7 @@
     "description": "設定頁面標題"
   },
   "generalSettings": {
-    "message": "一般設定",
+    "message": "⚙️ 一般設定",
     "description": "一般設定部分"
   },
   "enableScrollRestore": {
@@ -276,5 +276,109 @@
         "example": "3"
       }
     }
+  },
+  "statsTitle": {
+    "message": "📊 統計",
+    "description": "統計區塊標題"
+  },
+  "statsDesc": {
+    "message": "目前儲存用量與統計資訊",
+    "description": "統計區塊說明"
+  },
+  "statTabRelations": {
+    "message": "標籤頁關係",
+    "description": "標籤頁關係標籤"
+  },
+  "statPersistentRelations": {
+    "message": "持久關係",
+    "description": "持久關係標籤"
+  },
+  "statStorageSize": {
+    "message": "儲存大小 (KB)",
+    "description": "儲存大小標籤"
+  },
+  "autoRestoreTitle": {
+    "message": "自動恢復關係",
+    "description": "自動恢復標題"
+  },
+  "autoRestoreDesc": {
+    "message": "瀏覽器重新啟動時自動恢復標籤頁關係",
+    "description": "自動恢復說明"
+  },
+  "smartSwitchTitle": {
+    "message": "智慧標籤切換",
+    "description": "智慧切換標題"
+  },
+  "smartSwitchDesc": {
+    "message": "關閉目前標籤頁時自動切換到相關標籤頁",
+    "description": "智慧切換說明"
+  },
+  "dataMgmtTitle": {
+    "message": "🗑️ 資料管理",
+    "description": "資料管理標題"
+  },
+  "dataMgmtDesc": {
+    "message": "管理已儲存資料並重設擴充功能狀態",
+    "description": "資料管理說明"
+  },
+  "clearAllTitle": {
+    "message": "清除所有資料",
+    "description": "清除所有資料標題"
+  },
+  "clearAllDesc": {
+    "message": "移除所有標籤頁關係與持久儲存資料。此操作無法復原。",
+    "description": "清除所有資料說明"
+  },
+  "clearAllBtn": {
+    "message": "清除所有資料",
+    "description": "清除所有資料按鈕"
+  },
+  "exportDataTitle": {
+    "message": "匯出資料",
+    "description": "匯出資料標題"
+  },
+  "exportDataDesc": {
+    "message": "匯出目前的標籤頁關係以供備份",
+    "description": "匯出資料說明"
+  },
+  "exportDataBtn": {
+    "message": "匯出資料",
+    "description": "匯出資料按鈕"
+  },
+  "aboutTitle": {
+    "message": "ℹ️ 關於",
+    "description": "關於區塊標題"
+  },
+  "aboutDesc": {
+    "message": "擴充功能資訊與版本詳細資料",
+    "description": "關於區塊說明"
+  },
+  "versionTitle": {
+    "message": "版本",
+    "description": "版本標題"
+  },
+  "versionDesc": {
+    "message": "目前擴充功能版本",
+    "description": "版本說明"
+  },
+  "developerTitle": {
+    "message": "開發者",
+    "description": "開發者標題"
+  },
+  "developerDesc": {
+    "message": "擴充功能開發者資訊",
+    "description": "開發者說明"
+  },
+  "tooltipTitleLabel": {
+    "message": "標題",
+    "description": "提示：頁面標題標籤"
+  },
+  "tooltipBookmarkLabel": {
+    "message": "書籤",
+    "description": "提示：書籤標題標籤"
+  },
+  "tooltipFolderLabel": {
+    "message": "位置",
+    "description": "提示：資料夾路徑標籤"
   }
 }

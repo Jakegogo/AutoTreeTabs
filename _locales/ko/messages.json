@@ -81,7 +81,7 @@
     "description": "설정 페이지 제목"
   },
   "generalSettings": {
-    "message": "일반 설정",
+    "message": "⚙️ 일반 설정",
     "description": "일반 설정 섹션"
   },
   "enableScrollRestore": {
@@ -276,5 +276,109 @@
         "example": "3"
       }
     }
+  },
+  "statsTitle": {
+    "message": "📊 통계",
+    "description": "통계 섹션 제목"
+  },
+  "statsDesc": {
+    "message": "현재 스토리지 사용량 및 통계",
+    "description": "통계 설명"
+  },
+  "statTabRelations": {
+    "message": "탭 관계",
+    "description": "탭 관계 레이블"
+  },
+  "statPersistentRelations": {
+    "message": "영구 관계",
+    "description": "영구 관계 레이블"
+  },
+  "statStorageSize": {
+    "message": "스토리지 크기 (KB)",
+    "description": "스토리지 크기 레이블"
+  },
+  "autoRestoreTitle": {
+    "message": "관계 자동 복원",
+    "description": "자동 복원 제목"
+  },
+  "autoRestoreDesc": {
+    "message": "브라우저 재시작 시 탭 관계 자동 복원",
+    "description": "자동 복원 설명"
+  },
+  "smartSwitchTitle": {
+    "message": "스마트 탭 전환",
+    "description": "스마트 전환 제목"
+  },
+  "smartSwitchDesc": {
+    "message": "현재 탭을 닫을 때 관련 탭으로 자동 전환",
+    "description": "스마트 전환 설명"
+  },
+  "dataMgmtTitle": {
+    "message": "🗑️ 데이터 관리",
+    "description": "데이터 관리 제목"
+  },
+  "dataMgmtDesc": {
+    "message": "저장된 데이터 관리 및 확장 상태 재설정",
+    "description": "데이터 관리 설명"
+  },
+  "clearAllTitle": {
+    "message": "모든 데이터 지우기",
+    "description": "모든 데이터 지우기 제목"
+  },
+  "clearAllDesc": {
+    "message": "모든 탭 관계와 영구 저장 데이터를 삭제합니다. 이 작업은 되돌릴 수 없습니다.",
+    "description": "모든 데이터 지우기 설명"
+  },
+  "clearAllBtn": {
+    "message": "모든 데이터 지우기",
+    "description": "모든 데이터 지우기 버튼"
+  },
+  "exportDataTitle": {
+    "message": "데이터 내보내기",
+    "description": "데이터 내보내기 제목"
+  },
+  "exportDataDesc": {
+    "message": "현재 탭 관계를 백업용으로 내보내기",
+    "description": "데이터 내보내기 설명"
+  },
+  "exportDataBtn": {
+    "message": "데이터 내보내기",
+    "description": "데이터 내보내기 버튼"
+  },
+  "aboutTitle": {
+    "message": "ℹ️ 정보",
+    "description": "정보 섹션 제목"
+  },
+  "aboutDesc": {
+    "message": "확장 프로그램 정보와 버전 상세",
+    "description": "정보 섹션 설명"
+  },
+  "versionTitle": {
+    "message": "버전",
+    "description": "버전 제목"
+  },
+  "versionDesc": {
+    "message": "현재 확장 프로그램 버전",
+    "description": "버전 설명"
+  },
+  "developerTitle": {
+    "message": "개발자",
+    "description": "개발자 제목"
+  },
+  "developerDesc": {
+    "message": "확장 프로그램 개발자 정보",
+    "description": "개발자 설명"
+  },
+  "tooltipTitleLabel": {
+    "message": "제목",
+    "description": "툴팁용 페이지 제목 레이블"
+  },
+  "tooltipBookmarkLabel": {
+    "message": "북마크",
+    "description": "툴팁용 북마크 제목 레이블"
+  },
+  "tooltipFolderLabel": {
+    "message": "위치",
+    "description": "툴팁용 폴더 경로 레이블"
   }
 }

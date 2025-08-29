@@ -225,20 +225,20 @@
 
     <!-- 统计信息 -->
     <div class="card">
-      <h2>📊 Statistics</h2>
-      <p>Current storage usage and statistics</p>
+      <h2 data-i18n="statsTitle">📊 Statistics</h2>
+      <p data-i18n="statsDesc">Current storage usage and statistics</p>
       <div class="stats">
         <div class="stat-item">
           <div class="stat-number" id="tabRelationsCount">0</div>
-          <div class="stat-label">Tab Relations</div>
+          <div class="stat-label" data-i18n="statTabRelations">Tab Relations</div>
         </div>
         <div class="stat-item">
           <div class="stat-number" id="persistentRelationsCount">0</div>
-          <div class="stat-label">Persistent Relations</div>
+          <div class="stat-label" data-i18n="statPersistentRelations">Persistent Relations</div>
         </div>
         <div class="stat-item">
           <div class="stat-number" id="totalStorageSize">0</div>
-          <div class="stat-label">Storage Size (KB)</div>
+          <div class="stat-label" data-i18n="statStorageSize">Storage Size (KB)</div>
         </div>
       </div>
     </div>
@@ -250,8 +250,8 @@
       
       <div class="setting-item">
         <div class="setting-label">
-          <h3>Auto Restore Relations</h3>
-          <p>Automatically restore tab relationships when browser restarts</p>
+          <h3 data-i18n="autoRestoreTitle">Auto Restore Relations</h3>
+          <p data-i18n="autoRestoreDesc">Automatically restore tab relationships when browser restarts</p>
         </div>
         <label class="switch">
           <input type="checkbox" id="autoRestoreToggle" checked>
@@ -261,8 +261,8 @@
 
       <div class="setting-item">
         <div class="setting-label">
-          <h3>Smart Tab Switching</h3>
-          <p>Automatically switch to related tabs when closing current tab</p>
+          <h3 data-i18n="smartSwitchTitle">Smart Tab Switching</h3>
+          <p data-i18n="smartSwitchDesc">Automatically switch to related tabs when closing current tab</p>
         </div>
         <label class="switch">
           <input type="checkbox" id="smartSwitchToggle" checked>
@@ -284,47 +284,47 @@
 
     <!-- 数据管理 -->
     <div class="card danger-zone">
-      <h2>🗑️ Data Management</h2>
-      <p>Manage stored data and reset extension state</p>
+      <h2 data-i18n="dataMgmtTitle">🗑️ Data Management</h2>
+      <p data-i18n="dataMgmtDesc">Manage stored data and reset extension state</p>
       
       <div class="setting-item">
         <div class="setting-label">
-          <h3>Clear All Data</h3>
-          <p>Remove all tab relations and persistent storage data. This action cannot be undone.</p>
+          <h3 data-i18n="clearAllTitle">Clear All Data</h3>
+          <p data-i18n="clearAllDesc">Remove all tab relations and persistent storage data. This action cannot be undone.</p>
         </div>
         <button class="button button-danger" id="clearAllBtn">
-          Clear All Data
+          <span data-i18n="clearAllBtn">Clear All Data</span>
         </button>
       </div>
 
       <div class="setting-item">
         <div class="setting-label">
-          <h3>Export Data</h3>
-          <p>Export current tab relations for backup purposes</p>
+          <h3 data-i18n="exportDataTitle">Export Data</h3>
+          <p data-i18n="exportDataDesc">Export current tab relations for backup purposes</p>
         </div>
         <button class="button button-primary" id="exportDataBtn">
-          Export Data
+          <span data-i18n="exportDataBtn">Export Data</span>
         </button>
       </div>
     </div>
 
     <!-- 关于信息 -->
     <div class="card">
-      <h2>ℹ️ About</h2>
-      <p>Extension information and version details</p>
+      <h2 data-i18n="aboutTitle">ℹ️ About</h2>
+      <p data-i18n="aboutDesc">Extension information and version details</p>
       
       <div class="setting-item">
         <div class="setting-label">
-          <h3>Version</h3>
-          <p>Current extension version</p>
+          <h3 data-i18n="versionTitle">Version</h3>
+          <p data-i18n="versionDesc">Current extension version</p>
         </div>
         <span id="versionInfo">1.0.0</span>
       </div>
 
       <div class="setting-item">
         <div class="setting-label">
-          <h3>Developer</h3>
-          <p>Extension developer information</p>
+          <h3 data-i18n="developerTitle">Developer</h3>
+          <p data-i18n="developerDesc">Extension developer information</p>
         </div>
         <span>AutoTreeTabs Team</span>
       </div>

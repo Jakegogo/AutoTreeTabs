@@ -80,8 +80,100 @@
     "description": "Settings page title"
   },
   "generalSettings": {
-    "message": "General Settings",
+    "message": "⚙️ General Settings",
     "description": "General settings section"
+  },
+  "statsTitle": {
+    "message": "📊 Statistics",
+    "description": "Statistics section title"
+  },
+  "statsDesc": {
+    "message": "Current storage usage and statistics",
+    "description": "Statistics description"
+  },
+  "statTabRelations": {
+    "message": "Tab Relations",
+    "description": "Tab relations label"
+  },
+  "statPersistentRelations": {
+    "message": "Persistent Relations",
+    "description": "Persistent relations label"
+  },
+  "statStorageSize": {
+    "message": "Storage Size (KB)",
+    "description": "Storage size label"
+  },
+  "autoRestoreTitle": {
+    "message": "Auto Restore Relations",
+    "description": "Auto restore title"
+  },
+  "autoRestoreDesc": {
+    "message": "Automatically restore tab relationships when browser restarts",
+    "description": "Auto restore description"
+  },
+  "smartSwitchTitle": {
+    "message": "Smart Tab Switching",
+    "description": "Smart switch title"
+  },
+  "smartSwitchDesc": {
+    "message": "Automatically switch to related tabs when closing current tab",
+    "description": "Smart switch description"
+  },
+  "dataMgmtTitle": {
+    "message": "🗑️ Data Management",
+    "description": "Data management title"
+  },
+  "dataMgmtDesc": {
+    "message": "Manage stored data and reset extension state",
+    "description": "Data management description"
+  },
+  "clearAllTitle": {
+    "message": "Clear All Data",
+    "description": "Clear all data title"
+  },
+  "clearAllDesc": {
+    "message": "Remove all tab relations and persistent storage data. This action cannot be undone.",
+    "description": "Clear all data description"
+  },
+  "clearAllBtn": {
+    "message": "Clear All Data",
+    "description": "Clear all data button"
+  },
+  "exportDataTitle": {
+    "message": "Export Data",
+    "description": "Export data title"
+  },
+  "exportDataDesc": {
+    "message": "Export current tab relations for backup purposes",
+    "description": "Export data description"
+  },
+  "exportDataBtn": {
+    "message": "Export Data",
+    "description": "Export data button"
+  },
+  "aboutTitle": {
+    "message": "ℹ️ About",
+    "description": "About section title"
+  },
+  "aboutDesc": {
+    "message": "Extension information and version details",
+    "description": "About section description"
+  },
+  "versionTitle": {
+    "message": "Version",
+    "description": "Version title"
+  },
+  "versionDesc": {
+    "message": "Current extension version",
+    "description": "Version description"
+  },
+  "developerTitle": {
+    "message": "Developer",
+    "description": "Developer title"
+  },
+  "developerDesc": {
+    "message": "Extension developer information",
+    "description": "Developer description"
   },
   "enableScrollRestore": {
     "message": "Enable scroll position restore",
@@ -253,6 +345,18 @@
   "bookmarkAdded": {
     "message": "Bookmarked",
     "description": "Bookmark added tooltip"
+  },
+  "tooltipTitleLabel": {
+    "message": "Title",
+    "description": "Tooltip label for page title"
+  },
+  "tooltipBookmarkLabel": {
+    "message": "Bookmark",
+    "description": "Tooltip label for bookmark title"
+  },
+  "tooltipFolderLabel": {
+    "message": "Folder",
+    "description": "Tooltip label for folder path"
   },
   "selectNode": {
     "message": "Select this node and all child nodes",
