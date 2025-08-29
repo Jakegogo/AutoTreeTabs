@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // 防止频繁恢复关系
 let lastRestoreTime = 0;
-const RESTORE_COOLDOWN = 1000; // 3秒冷却时间
+const RESTORE_COOLDOWN = 3000; // 3秒冷却时间
 
 // 加载标签页树结构
 async function loadTabTree() {
@@ -418,31 +418,31 @@ async function loadTabTree() {
     let attempts = 0;
     const maxAttempts = 10; // 最多尝试10次 (2秒)
     
-          while (attempts < maxAttempts) {
-        try {
-          tabRelations = await chrome.runtime.sendMessage({ action: 'getTabRelations' });
-          
-          if (tabRelations !== undefined) {
-            console.log(`🎯 Background ready after ${attempts + 1} attempts, got ${Object.keys(tabRelations).length} relations`);
-            break;
-          } else {
-            attempts++;
-            if (attempts < maxAttempts) {
-              console.log(`⏳ Background not ready yet, attempt ${attempts}/${maxAttempts}, retrying in 100ms...`);
-              await new Promise(resolve => setTimeout(resolve, 200));
-            }
-          }
-        } catch (error) {
+    while (attempts < maxAttempts) {
+      try {
+        tabRelations = await chrome.runtime.sendMessage({ action: 'getTabRelations' });
+        
+        if (tabRelations !== undefined) {
+          console.log(`🎯 Background ready after ${attempts + 1} attempts, got ${Object.keys(tabRelations).length} relations`);
+          break;
+        } else {
           attempts++;
-          console.log(`❌ Error getting tab relations, attempt ${attempts}/${maxAttempts}:`, error);
           if (attempts < maxAttempts) {
+            console.log(`⏳ Background not ready yet, attempt ${attempts}/${maxAttempts}, retrying in 100ms...`);
             await new Promise(resolve => setTimeout(resolve, 200));
           }
         }
+      } catch (error) {
+        attempts++;
+        console.log(`❌ Error getting tab relations, attempt ${attempts}/${maxAttempts}:`, error);
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
       }
-      
-      // 确保 tabRelations 是对象
-      tabRelations = tabRelations || {};
+    }
+    
+    // 确保 tabRelations 是对象
+    tabRelations = tabRelations || {};
     
     if (attempts >= maxAttempts) {
       console.warn('⚠️ Background may not be ready after maximum attempts, proceeding with empty relations');
@@ -709,6 +709,46 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   selectBtnContainer.appendChild(selectBtn);
   selectBtnContainer.appendChild(selectOverlay);
   
+  // 置顶按钮容器（放在 select 和 close 中间）
+  const pinBtnContainer = document.createElement('div');
+  pinBtnContainer.className = 'pin-btn-container';
+  
+  // 置顶按钮
+  const pinBtn = document.createElement('button');
+  pinBtn.className = 'pin-btn';
+  // 使用内嵌span控制视觉高度
+  const pinIcon = document.createElement('span');
+  pinIcon.className = 'pin-icon';
+  pinIcon.textContent = '⇧';
+  pinBtn.appendChild(pinIcon);
+  pinBtn.title = i18n('pinToTop') || 'Pin to top';
+  
+  // 透明点击区域
+  const pinOverlay = document.createElement('div');
+  pinOverlay.className = 'pin-btn-overlay';
+  pinOverlay.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    try {
+      // 将该标签页移动到所在窗口的最前端（index 0）
+      await chrome.tabs.move(node.id, { index: 0 });
+      
+      // 移除该标签页的父子关系（置顶后成为根）
+      try {
+        await chrome.runtime.sendMessage({ action: 'removeTabRelationsFor', tabId: node.id });
+      } catch (remErr) {
+        console.warn('Failed to remove relations for pinned tab:', remErr);
+      }
+      
+      // 刷新树形结构视图
+      await loadTabTree();
+    } catch (err) {
+      console.error('Error pinning tab to top:', err);
+    }
+  });
+  
+  pinBtnContainer.appendChild(pinBtn);
+  pinBtnContainer.appendChild(pinOverlay);
+
   // 关闭按钮容器
   const closeBtnContainer = document.createElement('div');
   closeBtnContainer.className = 'close-btn-container';
@@ -740,6 +780,7 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   
   // 将按钮容器添加到操作区域
   actionsContainer.appendChild(selectBtnContainer);
+  actionsContainer.appendChild(pinBtnContainer);
   actionsContainer.appendChild(closeBtnContainer);
   
   // 将操作区域添加到节点

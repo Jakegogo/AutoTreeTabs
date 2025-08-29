@@ -103,7 +103,7 @@ class TabTreePersistentStorage {
       
       // 检查是否已经有标签页关系数据，如果有则不进行恢复
       const existingRelations = storageManager.getTabRelations();
-      if (existingRelations && Object.keys(existingRelations).length > 0) {
+      if (existingRelations) {
         console.log('🚫 Tab relations already exist, skipping restore. Existing relations:', Object.keys(existingRelations).length);
         return existingRelations;
       }
@@ -177,6 +177,18 @@ class TabTreePersistentStorage {
     }
   }
 
+  // 移除标签页相关的所有关系（持久化存储）
+  async removeRelation(url) {
+    try {
+      const persistentTree = await storageManager.getPersistentTree();
+      const normalizedUrl = this.normalizeUrl(url);
+      persistentTree.relations = persistentTree.relations.filter(relation => relation.child.url !== normalizedUrl);
+      storageManager.saveToPersistentTree(persistentTree);
+    } catch(error) {
+      console.error('Error removing persistent relation:', error);
+    }
+  }
+
   // 清理过期数据
   async cleanup() {
     try {
@@ -205,7 +217,7 @@ class TabTreePersistentStorage {
 class StorageManager {
   constructor() {
     this.persistentTreeCache = null;
-    this.tabRelationsCache = {}; // 仅内存缓存，不持久化
+    this.tabRelationsCache = null; // 仅内存缓存，不持久化
     this.scrollPositionsCache = null; // 滚动位置缓存，需要持久化
     // 全局历史记录存储（多个标签页共享）, 仅当前窗口会话存储(关闭窗口后丢失)
     this.globalTabHistory = null;
@@ -245,11 +257,11 @@ class StorageManager {
   // 同步获取tabRelations，如果缓存为空则先恢复数据
   async getTabRelationsSync() {
     // 如果缓存为空，先从持久化存储恢复关系
-    if (!this.tabRelationsCache || Object.keys(this.tabRelationsCache).length === 0) {
+    if (!this.tabRelationsCache) {
       console.log('📦 Cache is empty, restoring relations from persistent storage...');
       await persistentStorage.restoreRelations();
-      if (!this.tabRelationsCache || Object.keys(this.tabRelationsCache).length === 0) {
-        console.log('❌ Tab relations cache is still empty after restore');
+      if (!this.tabRelationsCache) {
+        console.log('❌ Tab relations cache is still null after restore');
       } else {
         console.log('✅ Tab relations cache restored successfully, tabRelationsCache.size:', Object.keys(this.tabRelationsCache).length);
       }
@@ -1039,7 +1051,7 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
     // console.log(`Remaining tabs after close:`, remainingTabs.map(t => `${t.id}(${t.index})`));
     
     // 查找要激活的下一个标签页
-    const nextTabId = findNextTabToActivate(tabId, tabRelations, remainingTabs);
+    const nextTabId = findNextTabToActivate(tabId, tabRelations || {}, remainingTabs);
     
     if (nextTabId) {
       console.log(`Activating next tab: ${nextTabId} after closing ${tabId}`);
@@ -1159,7 +1171,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       } else if (request.action === 'getTabRelations') {
         // 获取当前的标签页关系缓存，如果没有值则先恢复数据
         const tabRelations = storageManager.getTabRelations();
-        if (!tabRelations || Object.keys(tabRelations).length === 0) {
+        if (!tabRelations) {
           // 如果缓存为空，使用同步方法恢复数据
           const restoredRelations = await storageManager.getTabRelationsSync();
           console.log('🔄 getTabRelations returns:', Object.keys(restoredRelations).length);
@@ -1190,6 +1202,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           console.log(`🗑️ Removed scroll position for ${request.url}`);
         }
         sendResponse({ success: true });
+      } else if (request.action === 'removeTabRelationsFor') {
+        // 移除指定标签页的父子关系（用于置顶等场景）
+        if (request.tabId) {
+          try {
+            await removeTabParentRelationsPersistent(parseInt(request.tabId));
+            console.log(`🗑️ Removed relations for tab ${request.tabId}`);
+            sendResponse({ success: true });
+            updateTabSnapshot();
+          } catch (e) {
+            console.error('Error removing relations for tab:', e);
+            sendResponse({ success: false, error: e?.message || String(e) });
+          }
+        } else {
+          sendResponse({ success: false, error: 'tabId required' });
+        }
       } else if (request.action === 'isFeatureEnabled') {
         // 同步检查特定功能是否启用
         if (request.feature) {
@@ -1247,8 +1274,11 @@ async function setTabParent(childTabId, parentTabId) {
 
 // 移除标签页相关的所有关系
 async function removeTabRelations(removedTabId) {
-    try {
-    const tabRelations = await storageManager.getTabRelationsSync();
+  try {
+    const tabRelations = storageManager.getTabRelations();
+    if (!tabRelations) {
+      return;
+    } 
 
     // 移除以该标签页为子标签页的关系
     delete tabRelations[removedTabId];
@@ -1263,6 +1293,28 @@ async function removeTabRelations(removedTabId) {
     storageManager.saveTabRelations(tabRelations);
     // console.log(`Cleaned up relations for removed tab ${removedTabId}`);
   } catch (error) {
+    console.error('Error removing tab relations:', error);
+  }
+}
+
+// 移除标签页相关的所有关系（持久化存储）
+async function removeTabParentRelationsPersistent(removedTabId) {
+  try {
+    const tabRelations = storageManager.getTabRelations();
+    if (!tabRelations) {
+      return;
+    } 
+    // 移除以该标签页为子标签页的关系
+    delete tabRelations[removedTabId];
+    storageManager.saveTabRelations(tabRelations);
+
+    const tab = await chrome.tabs.get(removedTabId);
+    // 移除持久化存储中的关系
+    if (tab && tab.url) {
+      persistentStorage.removeRelation(tab.url);
+      console.log(`🗑️ Removed persistent relation for ${tab.url}`);
+    }
+  } catch(error) {
     console.error('Error removing tab relations:', error);
   }
 }

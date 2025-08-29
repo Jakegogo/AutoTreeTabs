@@ -346,6 +346,63 @@
       background: #cc0000;
     }
     
+    /* 置顶按钮样式 */
+    .pin-btn-container {
+      position: relative;
+      width: 24px;
+      height: 100%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .pin-btn {
+      width: 16px;
+      height: 16px;
+      background: #ffb300; /* amber */
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 8px;
+      line-height: 12px;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .pin-btn:hover {
+      background: #ff9800;
+    }
+    
+    /* 置顶图标缩放，降低视觉高度 */
+    .pin-icon {
+      display: inline-block;
+      transform: scaleY(0.6);
+      transform-origin: center;
+      line-height: 1;
+    }
+    
+    .pin-btn-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      cursor: pointer;
+      opacity: 0;
+    }
+    
+    .tree-node:hover .pin-btn {
+      opacity: 1;
+    }
+    
     .header-buttons {
       display: flex;
       gap: 8px;
