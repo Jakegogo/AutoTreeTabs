@@ -726,7 +726,7 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   // 使用内嵌span控制视觉高度
   const pinIcon = document.createElement('span');
   pinIcon.className = 'pin-icon';
-  pinIcon.textContent = '⇧';
+  pinIcon.textContent = '⬆';
   pinBtn.appendChild(pinIcon);
   pinBtn.title = i18n('pinToTop') || 'Pin to top';
   
@@ -1304,7 +1304,7 @@ function calculateTreeHeight() {
   }
   
   // 计算可用高度，保留20px安全边距
-  const availableHeight = popupHeight - usedHeight - 20;
+  const availableHeight = popupHeight - usedHeight - 30;
   
   // 设置最小高度200px，最大高度500px
   const finalHeight = Math.max(200, Math.min(500, availableHeight));

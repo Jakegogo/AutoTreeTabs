@@ -938,7 +938,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 async function updateChildRelationsForUpdatedParent(parentTabId, updatedParentTab) {
   try {
     const persistentTree = await storageManager.getPersistentTree();
-    const tabRelations = await storageManager.getTabRelationsSync();
+    const tabRelations = await storageManager.getTabRelationsSync() || {};
     
     // 查找所有以该标签页为父节点的子节点
     const childTabIds = Object.keys(tabRelations).filter(childId => 
@@ -1166,7 +1166,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true });
       } else if (request.action === 'getTabRelations') {
         // 获取当前的标签页关系缓存，如果没有值则先恢复数据
-        const tabRelations = storageManager.getTabRelations();
+        const tabRelations = storageManager.getTabRelations() || {};
         if (!tabRelations) {
           // 如果缓存为空，使用同步方法恢复数据
           const restoredRelations = await storageManager.getTabRelationsSync();
@@ -1236,7 +1236,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // 设置标签页的父标签页
 async function setTabParent(childTabId, parentTabId) {
   try {
-    const tabRelations = await storageManager.getTabRelationsSync();
+    const tabRelations = await storageManager.getTabRelationsSync() || {};
     
     tabRelations[childTabId] = parentTabId;
     
