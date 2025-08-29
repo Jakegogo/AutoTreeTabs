@@ -143,7 +143,7 @@ Let Auto Tree Tabs become your powerful assistant for efficient browsing! 🚀
 ---
 
 ### Tags
-tab management, bookmarks, browser tools, productivity, tab organization, search, history, work efficiency, tree structure, workspace
+tab manager, tree structure, tab search, reading position, workspace export
 
 ### Keywords
-chrome extension, tab manager, browser productivity, tab organizer, workspace management, reading position, tab tree, browser efficiency, tab search, project management
+tab manager, tab tree, tab organizer, workspace export, tab search
