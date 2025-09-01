@@ -1,5 +1,11 @@
-// 内容脚本
-console.log('Auto Tree Tabs content script loaded');
+(function() {
+  if (window.__ATT_SCROLL_MANAGER_LOADED__) {
+    return;
+  }
+  window.__ATT_SCROLL_MANAGER_LOADED__ = true;
+
+  // 内容脚本
+  console.log('Auto Tree Tabs content script loaded');
 
 // 防抖函数（用于滚动事件）- 性能优化版本
 function debounceScroll(func, wait) {
@@ -344,5 +350,6 @@ async function initializeScrollManager() {
   }
 }
 
-// 启动初始化
-initializeScrollManager();
+  // 启动初始化
+  initializeScrollManager();
+})();
