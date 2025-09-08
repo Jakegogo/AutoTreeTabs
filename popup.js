@@ -405,6 +405,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 let lastRestoreTime = 0;
 const RESTORE_COOLDOWN = 3000; // 3秒冷却时间
 
+// 全局置顶标签页缓存
+let pinnedTabsCache = {};
+
 // 加载标签页树结构
 async function loadTabTree() {
   try {
@@ -456,6 +459,15 @@ async function loadTabTree() {
     }
     
     console.log('🔄 getTabRelations gets:', Object.keys(tabRelations).length);
+    
+    // 一次性获取所有置顶标签页数据
+    try {
+      pinnedTabsCache = await chrome.runtime.sendMessage({ action: 'getPinnedTabs' }) || {};
+      console.log('📌 Loaded pinned tabs:', Object.keys(pinnedTabsCache).length);
+    } catch (error) {
+      console.log('Could not load pinned tabs:', error);
+      pinnedTabsCache = {};
+    }
     
     // 获取当前所有标签页
     const tabs = await chrome.tabs.query({});
@@ -568,6 +580,13 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   if (node.discarded || node.status === 'unloaded') {
     nodeElement.classList.add('unloaded');
     // console.log('🔄 Unloaded tab detected:', node.id, node.title, 'discarded:', node.discarded, 'status:', node.status);
+  }
+  
+  // 检查是否为置顶标签页并应用样式（使用缓存数据）
+  const isPinned = pinnedTabsCache && pinnedTabsCache[node.id];
+  if (isPinned) {
+    nodeElement.classList.add('pinned-tab');
+    console.log('📌 Applied pinned styling to tab:', node.id, node.title);
   }
   
   // 生成树形结构符号
@@ -726,9 +745,18 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   // 使用内嵌span控制视觉高度
   const pinIcon = document.createElement('span');
   pinIcon.className = 'pin-icon';
-  pinIcon.textContent = '⬆';
+  
+  // 根据置顶状态设置图标和提示文本
+  const isPinnedForButton = pinnedTabsCache && pinnedTabsCache[node.id];
+  if (isPinnedForButton) {
+    pinIcon.textContent = '📌'; // 已置顶状态的图标
+    pinBtn.title = i18n('unpinFromTop') || 'Unpin from top';
+  } else {
+    pinIcon.textContent = '⬆'; // 未置顶状态的图标
+    pinBtn.title = i18n('pinToTop') || 'Pin to top';
+  }
+  
   pinBtn.appendChild(pinIcon);
-  pinBtn.title = i18n('pinToTop') || 'Pin to top';
   
   // 透明点击区域
   const pinOverlay = document.createElement('div');
@@ -736,20 +764,50 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   pinOverlay.addEventListener('click', async (e) => {
     e.stopPropagation();
     try {
-      // 将该标签页移动到所在窗口的最前端（index 0）
-      await chrome.tabs.move(node.id, { index: 0 });
+      // 使用缓存检查当前是否已置顶
+      const isCurrentlyPinned = pinnedTabsCache && pinnedTabsCache[node.id];
       
-      // 移除该标签页的父子关系（置顶后成为根）
-      try {
-        await chrome.runtime.sendMessage({ action: 'removeTabRelationsFor', tabId: node.id });
-      } catch (remErr) {
-        console.warn('Failed to remove relations for pinned tab:', remErr);
+      if (isCurrentlyPinned) {
+        // 取消置顶
+        await chrome.runtime.sendMessage({ action: 'removePinnedTab', tabId: node.id });
+        // 更新本地缓存
+        delete pinnedTabsCache[node.id];
+        console.log(`📌 Unpinned tab: ${node.id}`);
+      } else {
+        // 置顶操作
+        // 将该标签页移动到所在窗口的最前端（index 0）
+        await chrome.tabs.move(node.id, { index: 0 });
+        
+        // 移除该标签页的父子关系（置顶后成为根）
+        try {
+          await chrome.runtime.sendMessage({ action: 'removeTabRelationsFor', tabId: node.id });
+        } catch (remErr) {
+          console.warn('Failed to remove relations for pinned tab:', remErr);
+        }
+        
+        // 添加到置顶列表
+        const tabInfo = {
+          url: node.url,
+          title: node.title
+        };
+        await chrome.runtime.sendMessage({ 
+          action: 'addPinnedTab', 
+          tabId: node.id,
+          tabInfo: tabInfo
+        });
+        
+        // 更新本地缓存
+        pinnedTabsCache[node.id] = {
+          ...tabInfo,
+          timestamp: Date.now()
+        };
+        console.log(`📌 Pinned tab: ${node.id} - ${node.title}`);
       }
       
       // 刷新树形结构视图
       await loadTabTree();
     } catch (err) {
-      console.error('Error pinning tab to top:', err);
+      console.error('Error toggling pin state:', err);
     }
   });
   

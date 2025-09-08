@@ -379,5 +379,13 @@
   "developerDesc": {
     "message": "扩展开发者信息",
     "description": "开发者说明"
+  },
+  "pinToTop": {
+    "message": "置顶",
+    "description": "Pin button tooltip"
+  },
+  "unpinFromTop": {
+    "message": "取消置顶",
+    "description": "Unpin button tooltip"
   }
 }

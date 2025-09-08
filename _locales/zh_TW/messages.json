@@ -380,5 +380,13 @@
   "tooltipFolderLabel": {
     "message": "位置",
     "description": "提示：資料夾路徑標籤"
+  },
+  "pinToTop": {
+    "message": "置頂",
+    "description": "Pin button tooltip"
+  },
+  "unpinFromTop": {
+    "message": "取消置頂",
+    "description": "Unpin button tooltip"
   }
 }

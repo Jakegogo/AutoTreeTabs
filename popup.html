@@ -166,6 +166,60 @@
       filter: grayscale(0%);
     }
     
+    /* 置顶标签页样式 */
+    .tree-node.pinned-tab {
+      border-left: 3px solid #ffd700; /* 金黄色左边框 */
+      padding-left: 5px;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+    
+    .tree-node.pinned-tab .tree-title {
+      font-weight: 600; /* 稍微加粗 */
+      color: #b8860b; /* 深金色文字 */
+      transition: color 0.2s ease, font-weight 0.2s ease;
+    }
+    
+    /* 置顶标签页的图标特殊样式 */
+    .tree-node.pinned-tab .tree-icon {
+      border: 1px solid #ffd700;
+      border-radius: 3px;
+      transition: border-color 0.2s ease;
+    }
+    
+    /* 置顶按钮在已置顶状态下的样式 */
+    .tree-node.pinned-tab .pin-btn {
+      background-color: rgba(255, 215, 0, 0.2);
+      color: #b8860b;
+    }
+    
+    .tree-node.pinned-tab .pin-btn:hover {
+      background-color: rgba(255, 215, 0, 0.3);
+    }
+    
+    /* 置顶标签页在深色模式下的样式 */
+    @media (prefers-color-scheme: dark) {
+      .tree-node.pinned-tab {
+        border-left-color: #daa520;
+      }
+      
+      .tree-node.pinned-tab .tree-title {
+        color: #daa520;
+      }
+      
+      .tree-node.pinned-tab .tree-icon {
+        border-color: #daa520;
+      }
+      
+      .tree-node.pinned-tab .pin-btn {
+        background-color: rgba(255, 215, 0, 0.25);
+        color: #daa520;
+      }
+      
+      .tree-node.pinned-tab .pin-btn:hover {
+        background-color: rgba(255, 215, 0, 0.35);
+      }
+    }
+    
     .tree-structure {
       font-family: Arial, "PingFangSC", "Microsoft YaHei", 微软雅黑, sans-serif;
       color: var(--text-color);

@@ -380,5 +380,13 @@
   "tooltipFolderLabel": {
     "message": "위치",
     "description": "툴팁용 폴더 경로 레이블"
+  },
+  "pinToTop": {
+    "message": "상단에 고정",
+    "description": "Pin button tooltip"
+  },
+  "unpinFromTop": {
+    "message": "고정 해제",
+    "description": "Unpin button tooltip"
   }
 }

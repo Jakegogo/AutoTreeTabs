@@ -215,6 +215,7 @@ class StorageManager {
     this.persistentTreeCache = null;
     this.tabRelationsCache = null; // 仅内存缓存，不持久化
     this.scrollPositionsCache = null; // 滚动位置缓存，需要持久化
+    this.pinnedTabsCache = null; // 置顶标签页缓存，需要持久化
     // 全局历史记录存储（多个标签页共享）, 仅当前窗口会话存储(关闭窗口后丢失)
     this.globalTabHistory = null;
     this.writeTimer = null;
@@ -347,6 +348,79 @@ class StorageManager {
     }
   }
 
+  // 获取置顶标签页缓存
+  async getPinnedTabs() {
+    if (!this.pinnedTabsCache) {
+      const result = await chrome.storage.local.get(['pinnedTabs']);
+      this.pinnedTabsCache = result.pinnedTabs || {};
+    }
+    return this.pinnedTabsCache;
+  }
+
+  // 添加置顶标签页
+  async addPinnedTab(tabId, tabInfo) {
+    if (!this.pinnedTabsCache) {
+      await this.getPinnedTabs();
+    }
+    this.pinnedTabsCache[tabId] = {
+      url: tabInfo.url,
+      title: tabInfo.title,
+      timestamp: Date.now()
+    };
+    this.scheduleWrite();
+    console.log(`📌 Added pinned tab: ${tabId} - ${tabInfo.title}`);
+  }
+
+  // 移除置顶标签页
+  async removePinnedTab(tabId) {
+    if (!this.pinnedTabsCache) {
+      await this.getPinnedTabs();
+    }
+    delete this.pinnedTabsCache[tabId];
+    this.scheduleWrite();
+    console.log(`📌 Removed pinned tab: ${tabId}`);
+  }
+
+  // 检查标签页是否置顶
+  async isPinnedTab(tabId) {
+    const pinnedTabs = await this.getPinnedTabs();
+    return !!pinnedTabs[tabId];
+  }
+
+  // 获取所有置顶标签页ID
+  async getPinnedTabIds() {
+    const pinnedTabs = await this.getPinnedTabs();
+    return Object.keys(pinnedTabs).map(id => parseInt(id));
+  }
+
+  // 清理无效的置顶标签页（标签页已关闭）
+  async cleanupInvalidPinnedTabs() {
+    if (!this.pinnedTabsCache) {
+      await this.getPinnedTabs();
+    }
+    
+    try {
+      const allTabs = await chrome.tabs.query({});
+      const validTabIds = new Set(allTabs.map(tab => tab.id.toString()));
+      let hasChanges = false;
+      
+      for (const tabId of Object.keys(this.pinnedTabsCache)) {
+        if (!validTabIds.has(tabId)) {
+          delete this.pinnedTabsCache[tabId];
+          hasChanges = true;
+          console.log(`🧹 Removed invalid pinned tab: ${tabId}`);
+        }
+      }
+      
+      if (hasChanges) {
+        this.scheduleWrite();
+        console.log('🧹 Cleaned up invalid pinned tabs');
+      }
+    } catch (error) {
+      console.error('Error cleaning up pinned tabs:', error);
+    }
+  }
+
   // 获取全局历史记录
   async getGlobalTabHistorySync() {
     if (!this.globalTabHistory) {
@@ -426,6 +500,10 @@ class StorageManager {
             dataToWrite.scrollPositions = this.scrollPositionsCache;
           }
 
+          if (this.pinnedTabsCache) {
+            dataToWrite.pinnedTabs = this.pinnedTabsCache;
+          }
+
           if (this.globalTabHistory) {
             dataToWrite.globalTabHistory = this.globalTabHistory;
           }
@@ -477,6 +555,10 @@ class StorageManager {
       
       if (this.scrollPositionsCache) {
         dataToWrite.scrollPositions = this.scrollPositionsCache;
+      }
+      
+      if (this.pinnedTabsCache) {
+        dataToWrite.pinnedTabs = this.pinnedTabsCache;
       }
       
       // tabRelations 不再持久化，仅保存在内存中
@@ -781,10 +863,20 @@ setInterval(async () => {
 setTimeout(async () => {
   try {
     await storageManager.cleanupOldScrollPositions();
+    await storageManager.cleanupInvalidPinnedTabs();
   } catch (error) {
-    console.error('Error during initial scroll position cleanup:', error);
+    console.error('Error during initial cleanup:', error);
   }
 }, 5000); // 5秒后执行
+
+// 定期清理无效的置顶标签页（每30分钟执行一次）
+setInterval(async () => {
+  try {
+    await storageManager.cleanupInvalidPinnedTabs();
+  } catch (error) {
+    console.error('Error during pinned tabs cleanup:', error);
+  }
+}, 30 * 60 * 1000); // 30分钟
 
 
 // 标签页关闭方向追踪（简单索引方案）
@@ -1011,6 +1103,8 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
       tabIndexSnapshot.delete(tabId);
       // 清理滚动位置
       await cleanupScrollPositionForTab(tabId);
+      // 清理置顶状态
+      await storageManager.removePinnedTab(tabId);
       return;
     }
     
@@ -1022,6 +1116,8 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
       tabIndexSnapshot.delete(tabId);
       // 清理滚动位置
       await cleanupScrollPositionForTab(tabId);
+      // 清理置顶状态
+      await storageManager.removePinnedTab(tabId);
       return;
     }
     
@@ -1032,6 +1128,7 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
       console.log(`Smart tab switching is disabled, skipping auto-switch`);
       await removeTabRelations(tabId);
       await cleanupScrollPositionForTab(tabId);
+      await storageManager.removePinnedTab(tabId); // 清理置顶状态
       tabIndexSnapshot.delete(tabId);
       return;
     }
@@ -1057,6 +1154,7 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
     // 清理相关的关系数据和快照
     await removeTabRelations(tabId);
     await cleanupScrollPositionForTab(tabId);
+    await storageManager.removePinnedTab(tabId); // 清理置顶状态
     tabIndexSnapshot.delete(tabId);
   } catch (error) {
     console.error('Error handling tab removal:', error);
@@ -1221,6 +1319,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           console.log(`📜 Feature ${request.feature} enabled:`, isEnabled);
         } else {
           sendResponse({ enabled: false });
+        }
+      } else if (request.action === 'addPinnedTab') {
+        // 添加置顶标签页
+        if (request.tabId && request.tabInfo) {
+          await storageManager.addPinnedTab(request.tabId, request.tabInfo);
+          sendResponse({ success: true });
+        } else {
+          sendResponse({ success: false, error: 'tabId and tabInfo required' });
+        }
+      } else if (request.action === 'removePinnedTab') {
+        // 移除置顶标签页
+        if (request.tabId) {
+          await storageManager.removePinnedTab(request.tabId);
+          sendResponse({ success: true });
+        } else {
+          sendResponse({ success: false, error: 'tabId required' });
+        }
+      } else if (request.action === 'getPinnedTabs') {
+        // 获取所有置顶标签页
+        const pinnedTabs = await storageManager.getPinnedTabs();
+        sendResponse(pinnedTabs);
+      } else if (request.action === 'isPinnedTab') {
+        // 检查标签页是否置顶
+        if (request.tabId) {
+          const isPinned = await storageManager.isPinnedTab(request.tabId);
+          sendResponse({ isPinned });
+        } else {
+          sendResponse({ isPinned: false });
         }
       }
     } catch (error) {

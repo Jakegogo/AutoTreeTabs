@@ -379,5 +379,13 @@
         "example": "3"
       }
     }
+  },
+  "pinToTop": {
+    "message": "Pin to top",
+    "description": "Pin button tooltip"
+  },
+  "unpinFromTop": {
+    "message": "Unpin from top", 
+    "description": "Unpin button tooltip"
   }
 }
