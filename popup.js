@@ -460,12 +460,12 @@ async function loadTabTree() {
     
     console.log('🔄 getTabRelations gets:', Object.keys(tabRelations).length);
     
-    // 一次性获取所有置顶标签页数据
+    // 一次性获取所有置顶标签页数据（转换为tabId映射）
     try {
-      pinnedTabsCache = await chrome.runtime.sendMessage({ action: 'getPinnedTabs' }) || {};
-      console.log('📌 Loaded pinned tabs:', Object.keys(pinnedTabsCache).length);
+      pinnedTabsCache = await chrome.runtime.sendMessage({ action: 'getPinnedTabIdsCache' }) || {};
+      console.log('📌 Loaded pinned tabs cache:', Object.keys(pinnedTabsCache).length);
     } catch (error) {
-      console.log('Could not load pinned tabs:', error);
+      console.log('Could not load pinned tabs cache:', error);
       pinnedTabsCache = {};
     }
     
@@ -486,6 +486,8 @@ async function loadTabTree() {
 function buildTabTree(tabs, tabRelations) {
   const tabMap = new Map();
   const rootTabs = [];
+  const pinnedTabs = [];
+  const normalTabs = [];
   
   // 创建标签页映射
   tabs.forEach(tab => {
@@ -504,11 +506,30 @@ function buildTabTree(tabs, tabRelations) {
       parent.children.push(child);
     } else {
       // 没有父节点的作为根节点
-      rootTabs.push(tabMap.get(tab.id));
+      const tabNode = tabMap.get(tab.id);
+      
+      // 检查是否为置顶标签页
+      const isPinned = pinnedTabsCache && pinnedTabsCache[tab.id];
+      if (isPinned) {
+        pinnedTabs.push(tabNode);
+      } else {
+        normalTabs.push(tabNode);
+      }
     }
   });
   
-  return rootTabs;
+  // 对置顶标签页按照置顶时间排序（最新置顶的在前）
+  pinnedTabs.sort((a, b) => {
+    const aTimestamp = pinnedTabsCache[a.id]?.timestamp || 0;
+    const bTimestamp = pinnedTabsCache[b.id]?.timestamp || 0;
+    return bTimestamp - aTimestamp;
+  });
+  
+  // 对普通标签页按照索引排序
+  normalTabs.sort((a, b) => a.index - b.index);
+  
+  // 置顶标签页在前，普通标签页在后
+  return [...pinnedTabs, ...normalTabs];
 }
 
 // 渲染树结构
@@ -516,7 +537,25 @@ function renderTree(tree) {
   const container = document.getElementById('treeContainer');
   container.innerHTML = '';
   
-  tree.forEach((node, index, array) => {
+  // 分离置顶标签页和普通标签页
+  const pinnedTabs = tree.filter(node => pinnedTabsCache && pinnedTabsCache[node.id]);
+  const normalTabs = tree.filter(node => !pinnedTabsCache || !pinnedTabsCache[node.id]);
+  
+  // 渲染置顶标签页
+  pinnedTabs.forEach((node, index, array) => {
+    renderNode(node, container, 0, [], false); // 置顶标签页不显示为最后一个
+  });
+  
+  // 如果有置顶标签页，添加分隔线
+  if (pinnedTabs.length > 0 && normalTabs.length > 0) {
+    const separator = document.createElement('div');
+    separator.className = 'pinned-separator';
+    separator.innerHTML = '<div class="separator-line"></div>';
+    container.appendChild(separator);
+  }
+  
+  // 渲染普通标签页
+  normalTabs.forEach((node, index, array) => {
     renderNode(node, container, 0, [], index === array.length - 1);
   });
 
@@ -796,7 +835,7 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
           tabInfo: tabInfo
         });
         
-        // 更新本地缓存
+        // 更新本地缓存（tabId映射）
         pinnedTabsCache[node.id] = {
           ...tabInfo,
           timestamp: Date.now()
@@ -1100,11 +1139,14 @@ function performSearch(searchTerm) {
 function filterNodes() {
   const allNodes = document.querySelectorAll('.tree-node');
   let hasVisibleResults = false;
+  let hasPinnedResults = false;
+  let hasNormalResults = false;
   
   allNodes.forEach((node, index) => {
     const tabTitle = node.querySelector('.tree-title');
     const tabUrl = node.getAttribute('data-tab-url') || '';
     const titleText = tabTitle ? normalizeText(tabTitle.textContent) : '';
+    const tabId = parseInt(node.getAttribute('data-tab-id'));
     
     // 检查标题和URL是否匹配搜索词
     const titleMatches = titleText.includes(currentSearchTerm);
@@ -1129,6 +1171,14 @@ function filterNodes() {
       showParentNodes(node);
       hasVisibleResults = true;
       
+      // 检查是否为置顶标签页
+      const isPinned = pinnedTabsCache && pinnedTabsCache[tabId];
+      if (isPinned) {
+        hasPinnedResults = true;
+      } else {
+        hasNormalResults = true;
+      }
+      
       // 高亮匹配的文本
       if (titleMatches && tabTitle) {
         highlightText(tabTitle, currentSearchTerm);
@@ -1138,6 +1188,17 @@ function filterNodes() {
       node.classList.add('hidden');
     }
   });
+  
+  // 智能显示/隐藏分隔线
+  const separator = document.querySelector('.pinned-separator');
+  if (separator) {
+    // 只有当置顶和普通标签页都有匹配结果时才显示分隔线
+    if (hasPinnedResults && hasNormalResults) {
+      separator.style.display = 'flex';
+    } else {
+      separator.style.display = 'none';
+    }
+  }
   
   return hasVisibleResults;
 }
@@ -1159,6 +1220,12 @@ function showAllNodes() {
     // 移除高亮
     removeHighlight(node);
   });
+  
+  // 显示分隔线
+  const separator = document.querySelector('.pinned-separator');
+  if (separator) {
+    separator.style.display = 'flex';
+  }
 }
 
 // 高亮匹配的文本
