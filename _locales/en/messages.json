@@ -387,5 +387,54 @@
   "unpinFromTop": {
     "message": "Unpin from top", 
     "description": "Unpin button tooltip"
+  },
+  
+  "exportPageTitle": {
+    "message": "Tab Tree Export",
+    "description": "Export page title"
+  },
+  "exportedOn": {
+    "message": "Exported on:",
+    "description": "Export timestamp label"
+  },
+  "totalTabs": {
+    "message": "Total:",
+    "description": "Total tabs count label"
+  },
+  "pinnedTabs": {
+    "message": "pinned",
+    "description": "Pinned tabs count"
+  },
+  "normalTabs": {
+    "message": "normal",
+    "description": "Normal tabs count"
+  },
+  "exportInstructions": {
+    "message": "Click links to open tabs. For parent nodes with children, click \"Open All\" to open all child tabs. Use \"Open All Tabs\" to open every single tab.",
+    "description": "Instructions for using the exported page"
+  },
+  "openAllTabsBtn": {
+    "message": "Open All Tabs",
+    "description": "Open all tabs button"
+  },
+  "openAllBtn": {
+    "message": "Open All",
+    "description": "Open all children button"
+  },
+  "pinnedTabsSection": {
+    "message": "📌 Pinned Tabs",
+    "description": "Pinned tabs section separator"
+  },
+  "confirmOpenAllTabs": {
+    "message": "Are you sure you want to open all {count} tabs? This might open a lot of browser windows.",
+    "description": "Confirmation message for opening all tabs"
+  },
+  "openingProgress": {
+    "message": "Opening {current}/{total}...",
+    "description": "Progress message when opening tabs"
+  },
+  "openingCompleted": {
+    "message": "Completed!",
+    "description": "Message when all tabs are opened"
   }
 }

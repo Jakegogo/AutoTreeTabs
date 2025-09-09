@@ -388,5 +388,54 @@
   "unpinFromTop": {
     "message": "取消置頂",
     "description": "Unpin button tooltip"
+  },
+  
+  "exportPageTitle": {
+    "message": "分頁樹導出",
+    "description": "導出頁面標題"
+  },
+  "exportedOn": {
+    "message": "導出時間：",
+    "description": "導出時間戳標籤"
+  },
+  "totalTabs": {
+    "message": "總計：",
+    "description": "總分頁數量標籤"
+  },
+  "pinnedTabs": {
+    "message": "個置頂",
+    "description": "置頂分頁數量"
+  },
+  "normalTabs": {
+    "message": "個普通",
+    "description": "普通分頁數量"
+  },
+  "exportInstructions": {
+    "message": "點擊連結開啟分頁。對於有子分頁的父節點，點擊「開啟全部」可開啟所有子分頁。使用「開啟所有分頁」可開啟每一個分頁。",
+    "description": "使用導出頁面的說明"
+  },
+  "openAllTabsBtn": {
+    "message": "開啟所有分頁",
+    "description": "開啟所有分頁按鈕"
+  },
+  "openAllBtn": {
+    "message": "開啟全部",
+    "description": "開啟所有子分頁按鈕"
+  },
+  "pinnedTabsSection": {
+    "message": "📌 置頂分頁",
+    "description": "置頂分頁分隔符"
+  },
+  "confirmOpenAllTabs": {
+    "message": "確定要開啟全部 {count} 個分頁嗎？這可能會開啟很多瀏覽器視窗。",
+    "description": "開啟所有分頁的確認消息"
+  },
+  "openingProgress": {
+    "message": "正在開啟 {current}/{total}...",
+    "description": "開啟分頁時的進度消息"
+  },
+  "openingCompleted": {
+    "message": "完成！",
+    "description": "所有分頁開啟完成的消息"
   }
 }

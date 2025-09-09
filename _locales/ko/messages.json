@@ -388,5 +388,54 @@
   "unpinFromTop": {
     "message": "고정 해제",
     "description": "Unpin button tooltip"
+  },
+  
+  "exportPageTitle": {
+    "message": "탭 트리 내보내기",
+    "description": "내보내기 페이지 제목"
+  },
+  "exportedOn": {
+    "message": "내보낸 시간:",
+    "description": "내보내기 타임스탬프 레이블"
+  },
+  "totalTabs": {
+    "message": "총계:",
+    "description": "총 탭 수 레이블"
+  },
+  "pinnedTabs": {
+    "message": "개 고정",
+    "description": "고정된 탭 수"
+  },
+  "normalTabs": {
+    "message": "개 일반",
+    "description": "일반 탭 수"
+  },
+  "exportInstructions": {
+    "message": "링크를 클릭하여 탭을 엽니다. 자식 탭이 있는 부모 노드의 경우 \"모두 열기\"를 클릭하여 모든 자식 탭을 엽니다. \"모든 탭 열기\"를 사용하여 모든 탭을 엽니다.",
+    "description": "내보낸 페이지 사용 설명"
+  },
+  "openAllTabsBtn": {
+    "message": "모든 탭 열기",
+    "description": "모든 탭 열기 버튼"
+  },
+  "openAllBtn": {
+    "message": "모두 열기",
+    "description": "모든 자식 탭 열기 버튼"
+  },
+  "pinnedTabsSection": {
+    "message": "📌 고정된 탭",
+    "description": "고정된 탭 섹션 구분선"
+  },
+  "confirmOpenAllTabs": {
+    "message": "정말로 {count}개의 모든 탭을 열시겠습니까? 많은 브라우저 창이 열릴 수 있습니다.",
+    "description": "모든 탭 열기 확인 메시지"
+  },
+  "openingProgress": {
+    "message": "열고 있습니다 {current}/{total}...",
+    "description": "탭을 열 때의 진행 상황 메시지"
+  },
+  "openingCompleted": {
+    "message": "완료!",
+    "description": "모든 탭이 열렸을 때의 메시지"
   }
 }

@@ -387,5 +387,54 @@
   "unpinFromTop": {
     "message": "取消置顶",
     "description": "Unpin button tooltip"
+  },
+  
+  "exportPageTitle": {
+    "message": "标签页树导出",
+    "description": "导出页面标题"
+  },
+  "exportedOn": {
+    "message": "导出时间：",
+    "description": "导出时间戳标签"
+  },
+  "totalTabs": {
+    "message": "总计：",
+    "description": "总标签页数量标签"
+  },
+  "pinnedTabs": {
+    "message": "个置顶",
+    "description": "置顶标签页数量"
+  },
+  "normalTabs": {
+    "message": "个普通",
+    "description": "普通标签页数量"
+  },
+  "exportInstructions": {
+    "message": "点击链接打开标签页。对于有子标签页的父节点，点击【打开全部】可打开所有子标签页。使用【打开所有标签页】可打开每一个标签页。",
+    "description": "使用导出页面的说明"
+  },
+  "openAllTabsBtn": {
+    "message": "打开所有标签页",
+    "description": "打开所有标签页按钮"
+  },
+  "openAllBtn": {
+    "message": "打开全部",
+    "description": "打开所有子标签页按钮"
+  },
+  "pinnedTabsSection": {
+    "message": "📌 置顶标签页",
+    "description": "置顶标签页分隔符"
+  },
+  "confirmOpenAllTabs": {
+    "message": "确定要打开全部 {count} 个标签页吗？这可能会打开很多浏览器窗口。",
+    "description": "打开所有标签页的确认消息"
+  },
+  "openingProgress": {
+    "message": "正在打开 {current}/{total}...",
+    "description": "打开标签页时的进度消息"
+  },
+  "openingCompleted": {
+    "message": "完成！",
+    "description": "所有标签页打开完成的消息"
   }
 }

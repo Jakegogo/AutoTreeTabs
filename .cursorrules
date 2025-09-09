@@ -151,3 +151,118 @@ Before submitting changes:
 *Remember: Quality over speed. It's better to implement one feature well with proper tests than to rush multiple incomplete features.*
 
 Commenting on Design and Changes: It is essential to document the reasons behind decisions as much as possible. For example, record why modifications were made, why a particular condition was added, and the rationale behind specific implementations. This is especially important for unconventional logic, where the reasoning should be clearly explained.
+
+
+# IntelliBoard Code Design Rules
+
+## 🔍 Problem-Solving Approach (问题解决方法)
+
+### Root Cause Analysis (根因分析)
+- **NEVER apply patches to fix symptoms** - always identify and address the root cause
+- When encountering issues, trace back to the fundamental problem rather than applying quick fixes
+- Document the root cause analysis process for future reference
+
+### Multi-Retry Problem Resolution (多次重试问题解决)
+- If a problem persists after multiple attempts, **STOP and re-read the complete codebase**
+- Perform comprehensive logic analysis before attempting another fix
+- Map out the complete data flow and state transitions
+- Consider architectural issues rather than implementation details
+
+## 🏗️ Architecture & Design Patterns (架构与设计模式)
+
+### State Management (状态管理)
+- For **complex state management**, use **State Machine** design patterns
+- Implement clear state transitions with defined triggers and guards
+- Document all possible states and their relationships
+- Use enum-based state definitions in Swift for type safety
+
+### Extensibility Requirements (扩展性要求)
+- When extensibility is mentioned as a requirement, **ALWAYS use appropriate design patterns**:
+  - **Strategy Pattern**: For algorithm variations
+  - **Observer Pattern**: For event handling and notifications
+  - **Factory Pattern**: For object creation with multiple types
+  - **Builder Pattern**: For complex object construction
+  - **Adapter Pattern**: For interface compatibility
+  - **Decorator Pattern**: For feature enhancement
+
+### Design Pattern Consistency (设计模式一致性)
+- **Record all design patterns used** in the project history
+- When adding new features, **maintain consistency** with existing design patterns
+- **NEVER degrade existing design** - always enhance or maintain the current architectural level
+- Create a design pattern registry document to track usage
+
+## 📋 Implementation Guidelines (实现指南)
+
+### Code Quality Standards
+```swift
+// ✅ Good: Root cause solution with state machine
+enum KeyboardState {
+    case inactive
+    case loading
+    case active(mode: KeyboardMode)
+    case error(KeyboardError)
+}
+
+class KeyboardStateMachine {
+    private var currentState: KeyboardState = .inactive
+    
+    func transition(to newState: KeyboardState, trigger: StateTrigger) {
+        // Validate transition and update state
+    }
+}
+
+// ❌ Bad: Patch-based solution
+class KeyboardManager {
+    func handleError() {
+        // Quick fix without understanding root cause
+        if someCondition {
+            // Band-aid solution
+        }
+    }
+}
+```
+
+### Design Pattern Documentation
+- Maintain a `DESIGN_PATTERNS.md` file listing:
+  - Pattern name and location
+  - Use case and rationale
+  - Related components
+  - Extension points
+
+### Refactoring Strategy
+- Follow the established **循序渐进 (step-by-step)** refactoring approach
+- **Phase 1**: Readability improvements (no logic changes)
+- **Phase 2**: Logic refactoring (focused on specific goals)
+- **Phase 3**: Architecture enhancement (design pattern application)
+
+## 🚫 Anti-Patterns to Avoid
+
+### Patch-Driven Development
+- Avoid multiple conditional patches for the same issue
+- Don't add flags or switches to bypass problems
+- Never ignore compiler warnings or deprecation notices
+
+### Design Degradation
+- Don't simplify existing sophisticated patterns for convenience
+- Avoid mixing different architectural styles in the same module
+- Never remove abstraction layers without proper refactoring
+
+## ✅ Success Criteria
+
+### Code Review Checklist
+- [ ] Root cause identified and addressed
+- [ ] Appropriate design pattern selected and implemented
+- [ ] Consistency with existing architectural decisions
+- [ ] Extensibility requirements properly addressed
+- [ ] State management follows established patterns
+- [ ] No patch-based solutions introduced
+
+### Quality Metrics
+- **Maintainability**: Code follows established patterns
+- **Extensibility**: New features integrate seamlessly
+- **Consistency**: Architecture remains coherent
+- **Robustness**: Root causes addressed, not symptoms
+
+---
+
+*Remember: Quality architecture is built through consistent application of sound design principles, not through accumulation of quick fixes.*

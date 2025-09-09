@@ -388,5 +388,54 @@
   "unpinFromTop": {
     "message": "固定を解除",
     "description": "Unpin button tooltip"
+  },
+  
+  "exportPageTitle": {
+    "message": "タブツリーエクスポート",
+    "description": "エクスポートページタイトル"
+  },
+  "exportedOn": {
+    "message": "エクスポート日時：",
+    "description": "エクスポートタイムスタンプラベル"
+  },
+  "totalTabs": {
+    "message": "合計：",
+    "description": "総タブ数ラベル"
+  },
+  "pinnedTabs": {
+    "message": "個固定",
+    "description": "固定タブ数"
+  },
+  "normalTabs": {
+    "message": "個通常",
+    "description": "通常タブ数"
+  },
+  "exportInstructions": {
+    "message": "リンクをクリックしてタブを開きます。子タブを持つ親ノードの場合、「すべて開く」をクリックしてすべての子タブを開きます。「すべてのタブを開く」を使用してすべてのタブを開きます。",
+    "description": "エクスポートページの使用説明"
+  },
+  "openAllTabsBtn": {
+    "message": "すべてのタブを開く",
+    "description": "すべてのタブを開くボタン"
+  },
+  "openAllBtn": {
+    "message": "すべて開く",
+    "description": "すべての子タブを開くボタン"
+  },
+  "pinnedTabsSection": {
+    "message": "📌 固定タブ",
+    "description": "固定タブセクション区切り"
+  },
+  "confirmOpenAllTabs": {
+    "message": "本当に{count}個のタブをすべて開きますか？多くのブラウザウィンドウが開く可能性があります。",
+    "description": "すべてのタブを開く確認メッセージ"
+  },
+  "openingProgress": {
+    "message": "開いています {current}/{total}...",
+    "description": "タブを開く際の進行状況メッセージ"
+  },
+  "openingCompleted": {
+    "message": "完了！",
+    "description": "すべてのタブが開かれた際のメッセージ"
   }
 }

@@ -1,7 +1,15 @@
-// 构建标签页树结构
-function buildTabTree(tabs, tabRelations) {
+// 构建标签页树结构（包含置顶标签页支持）
+function buildTabTree(tabs, tabRelations, pinnedTabsCache = null) {
+  console.log('🏗️ Building tab tree with:', {
+    tabsCount: tabs.length,
+    relationsCount: Object.keys(tabRelations || {}).length,
+    pinnedCount: Object.keys(pinnedTabsCache || {}).length
+  });
+  
   const tabMap = new Map();
   const rootTabs = [];
+  const pinnedTabs = [];
+  const normalTabs = [];
   
   // 创建标签页映射
   tabs.forEach(tab => {
@@ -11,40 +19,120 @@ function buildTabTree(tabs, tabRelations) {
     });
   });
   
+  console.log('📋 Created tab map with', tabMap.size, 'entries');
+  
   // 构建父子关系
+  let childCount = 0;
+  let rootCount = 0;
+  
   tabs.forEach(tab => {
     const parentId = tabRelations[tab.id];
     if (parentId && tabMap.has(parentId)) {
       const parent = tabMap.get(parentId);
       const child = tabMap.get(tab.id);
       parent.children.push(child);
+      childCount++;
+      console.log(`🔗 Added child: ${tab.title} -> ${parent.title}`);
     } else {
       // 没有父节点的作为根节点
-      rootTabs.push(tabMap.get(tab.id));
+      const tabNode = tabMap.get(tab.id);
+      rootCount++;
+      
+      // 检查是否为置顶标签页
+      const isPinned = pinnedTabsCache && pinnedTabsCache[tab.id];
+      if (isPinned) {
+        pinnedTabs.push(tabNode);
+        console.log(`📌 Added pinned root: ${tab.title}`);
+      } else {
+        normalTabs.push(tabNode);
+        console.log(`📄 Added normal root: ${tab.title}`);
+      }
     }
   });
   
-  return rootTabs;
+  console.log(`🔢 Tree statistics: ${childCount} children, ${rootCount} roots (${pinnedTabs.length} pinned, ${normalTabs.length} normal)`);
+  
+  // 对置顶标签页按照置顶时间排序（最新置顶的在前）
+  pinnedTabs.sort((a, b) => {
+    const aTimestamp = pinnedTabsCache[a.id]?.timestamp || 0;
+    const bTimestamp = pinnedTabsCache[b.id]?.timestamp || 0;
+    return bTimestamp - aTimestamp;
+  });
+  
+  // 对普通标签页按照索引排序
+  normalTabs.sort((a, b) => a.index - b.index);
+  
+  // 置顶标签页在前，普通标签页在后
+  const result = [...pinnedTabs, ...normalTabs];
+  console.log('✅ Final tree structure:', result.length, 'root nodes');
+  
+  return result;
+}
+
+// 获取国际化文本
+async function getI18nMessages() {
+  const messages = {};
+  const keys = [
+    'exportPageTitle', 'exportedOn', 'totalTabs', 'pinnedTabs', 'normalTabs',
+    'exportInstructions', 'openAllTabsBtn', 'openAllBtn', 'pinnedTabsSection',
+    'confirmOpenAllTabs', 'openingProgress', 'openingCompleted'
+  ];
+  
+  for (const key of keys) {
+    try {
+      messages[key] = chrome.i18n.getMessage(key) || key;
+    } catch (error) {
+      messages[key] = key;
+    }
+  }
+  
+  return messages;
 }
 
 // 导出标签页树为HTML文件
 async function exportTabTree() {
   try {
-    // 获取当前的树形数据
-    const result = await chrome.storage.local.get(['tabRelations']);
-    const tabRelations = result.tabRelations || {};
+    console.log('🚀 Starting export process...');
+    
+    // 获取国际化文本
+    const i18nMessages = await getI18nMessages();
+    console.log('🌐 Retrieved i18n messages:', Object.keys(i18nMessages).length);
     
     // 获取所有标签页
     const tabs = await chrome.tabs.query({});
+    console.log('📋 Retrieved tabs:', tabs.length);
     
-    // 构建树形结构
-    const tree = buildTabTree(tabs, tabRelations);
+    // 获取当前的标签页关系数据
+    let tabRelations = {};
+    try {
+      tabRelations = await chrome.runtime.sendMessage({ action: 'getTabRelations' });
+      console.log('🔗 Retrieved tab relations:', Object.keys(tabRelations || {}).length);
+    } catch (error) {
+      console.warn('Failed to get tab relations:', error);
+      tabRelations = {};
+    }
+    
+    // 获取置顶标签页缓存
+    let pinnedTabsCache = {};
+    try {
+      pinnedTabsCache = await chrome.runtime.sendMessage({ action: 'getPinnedTabIdsCache' });
+      console.log('📌 Retrieved pinned tabs cache:', Object.keys(pinnedTabsCache || {}).length);
+    } catch (error) {
+      console.warn('Failed to get pinned tabs cache:', error);
+      pinnedTabsCache = {};
+    }
+    
+    // 构建树形结构（包含置顶标签页）
+    const tree = buildTabTree(tabs, tabRelations, pinnedTabsCache);
+    console.log('🌳 Built tree structure:', tree.length, 'root nodes');
     
     // 生成HTML内容
-    const html = generateHTML(tree);
+    const html = generateHTML(tree, pinnedTabsCache, i18nMessages);
+    console.log('📄 Generated HTML content');
     
     // 下载HTML文件
     downloadHTML(html);
+    console.log('⬇️ Download initiated');
     
   } catch (error) {
     console.error('Error exporting tab tree:', error);
@@ -52,14 +140,30 @@ async function exportTabTree() {
 }
 
 // 生成HTML内容
-function generateHTML(tree) {
+function generateHTML(tree, pinnedTabsCache = null, i18nMessages = {}) {
   const timestamp = new Date().toLocaleString();
+  
+  console.log('📄 Generating HTML for tree:', tree.length, 'nodes');
+  
+  // 分离置顶标签页和普通标签页用于显示
+  const pinnedTabs = tree.filter(node => pinnedTabsCache && pinnedTabsCache[node.id]);
+  const normalTabs = tree.filter(node => !pinnedTabsCache || !pinnedTabsCache[node.id]);
+  
+  console.log('📊 HTML generation split:', {
+    totalNodes: tree.length,
+    pinnedNodes: pinnedTabs.length,
+    normalNodes: normalTabs.length
+  });
+  
+  // 构建统计文本
+  const totalText = `${i18nMessages.totalTabs || 'Total:'} ${tree.length} ${tree.length === 1 ? 'tab' : 'tabs'}`;
+  const pinnedText = pinnedTabs.length > 0 ? ` (${pinnedTabs.length} ${i18nMessages.pinnedTabs || 'pinned'}, ${normalTabs.length} ${i18nMessages.normalTabs || 'normal'})` : '';
   
   const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Tab Tree Export - ${timestamp}</title>
+  <title>${i18nMessages.exportPageTitle || 'Tab Tree Export'} - ${timestamp}</title>
   <style>
     body {
       margin: 20px;
@@ -176,25 +280,81 @@ function generateHTML(tree) {
     .open-all-tabs-btn:hover {
       background: #f57c00;
     }
+    
+    /* 置顶标签页样式 */
+    .tree-node.pinned-tab {
+      background-color: rgba(255, 215, 0, 0.1);
+      border-left: 3px solid #ffd700;
+      padding-left: 5px;
+      position: relative;
+    }
+    
+    .tree-node.pinned-tab .tree-title {
+      font-weight: 600;
+      color: #b8860b;
+    }
+    
+    .tree-node.pinned-tab::before {
+      content: '📌';
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      opacity: 0.7;
+    }
+    
+    /* 置顶分隔线样式 */
+    .pinned-separator {
+      margin: 8px 0;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    
+    .separator-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #ffd700, transparent);
+      position: relative;
+    }
+    
+    .separator-line::before {
+      content: '${i18nMessages.pinnedTabsSection || '📌 Pinned Tabs'}';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 0 12px;
+      font-size: 11px;
+      color: #b8860b;
+      font-weight: 600;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
   <div class="header">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-      <h1 style="margin: 0;">Tab Tree Export</h1>
-      <button class="open-all-tabs-btn" onclick="openAllTabs()">Open All Tabs</button>
+      <h1 style="margin: 0;">${i18nMessages.exportPageTitle || 'Tab Tree Export'}</h1>
+      <button class="open-all-tabs-btn" onclick="openAllTabs()">${i18nMessages.openAllTabsBtn || 'Open All Tabs'}</button>
     </div>
-    <p>Exported on: ${timestamp}</p>
-    <p>Click links to open tabs. For parent nodes with children, click "Open All" to open all child tabs. Use "Open All Tabs" to open every single tab.</p>
+    <p>${i18nMessages.exportedOn || 'Exported on:'} ${timestamp}</p>
+    <p>${totalText}${pinnedText}</p>
+    <p>${i18nMessages.exportInstructions || 'Click links to open tabs. For parent nodes with children, click "Open All" to open all child tabs. Use "Open All Tabs" to open every single tab.'}</p>
   </div>
   
   <div class="tree-container">
-    ${generateTreeHTML(tree)}
+    ${pinnedTabs.length > 0 ? generateTreeHTML(pinnedTabs, 0, [], pinnedTabsCache, i18nMessages) : ''}
+    ${pinnedTabs.length > 0 && normalTabs.length > 0 ? '<div class="pinned-separator"><div class="separator-line"></div></div>' : ''}
+    ${normalTabs.length > 0 ? generateTreeHTML(normalTabs, 0, [], pinnedTabsCache, i18nMessages) : ''}
   </div>
   
   <script>
-    // 全局变量：存储所有标签页URL
+    // 全局变量：存储所有标签页URL和国际化文本
     const allTabUrls = ${JSON.stringify(collectAllUrls(tree))};
+    const i18n = ${JSON.stringify(i18nMessages)};
     // 收集所有子节点的URL
     function collectChildUrls(node) {
       const urls = [];
@@ -225,7 +385,8 @@ function generateHTML(tree) {
     
     // 打开所有标签页（分批处理，避免浏览器阻塞）
     async function openAllTabs() {
-      if (confirm('Are you sure you want to open all ' + allTabUrls.length + ' tabs? This might open a lot of browser windows.')) {
+      const confirmMsg = (i18n.confirmOpenAllTabs || 'Are you sure you want to open all {count} tabs? This might open a lot of browser windows.').replace('{count}', allTabUrls.length);
+      if (confirm(confirmMsg)) {
         const batchSize = 10;
         const delay = 100; // 100毫秒
         
@@ -239,7 +400,8 @@ function generateHTML(tree) {
             const progress = i + batch.length;
             
             // 更新进度显示
-            button.textContent = 'Opening ' + progress + '/' + allTabUrls.length + '...';
+            const progressMsg = (i18n.openingProgress || 'Opening {current}/{total}...').replace('{current}', progress).replace('{total}', allTabUrls.length);
+            button.textContent = progressMsg;
             
             // 打开当前批次的标签页
             batch.forEach(url => {
@@ -255,7 +417,7 @@ function generateHTML(tree) {
           }
           
           // 完成后恢复按钮文本
-          button.textContent = 'Completed!';
+          button.textContent = i18n.openingCompleted || 'Completed!';
           setTimeout(() => {
             button.textContent = originalText;
           }, 2000);
@@ -299,7 +461,11 @@ function collectAllUrls(tree) {
 }
 
 // 生成树形HTML结构
-function generateTreeHTML(nodes, depth = 0, parentLines = []) {
+function generateTreeHTML(nodes, depth = 0, parentLines = [], pinnedTabsCache = null, i18nMessages = {}) {
+  if (depth === 0) {
+    console.log('🌳 Generating tree HTML for', nodes.length, 'nodes at root level');
+  }
+  
   let html = '';
   
   nodes.forEach((node, index) => {
@@ -332,7 +498,8 @@ function generateTreeHTML(nodes, depth = 0, parentLines = []) {
     if (hasChildren) {
       const allUrls = collectChildUrls(node);
       const urlsJson = JSON.stringify(allUrls).replace(/"/g, '&quot;');
-      openAllButton = `<button class="open-children-btn" onclick="openAllChildren([${allUrls.map(url => `&quot;${url.replace(/"/g, '&quot;')}&quot;`).join(',')}])">Open All</button>`;
+      const openAllText = (typeof i18nMessages !== 'undefined' && i18nMessages.openAllBtn) || 'Open All';
+      openAllButton = `<button class="open-children-btn" onclick="openAllChildren([${allUrls.map(url => `&quot;${url.replace(/"/g, '&quot;')}&quot;`).join(',')}])">${openAllText}</button>`;
     }
     
     // 转义HTML属性中的特殊字符
@@ -347,8 +514,12 @@ function generateTreeHTML(nodes, depth = 0, parentLines = []) {
     }
     const escapedFavIcon = safeFavIconUrl.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
     
+    // 检查是否为置顶标签页
+    const isPinned = pinnedTabsCache && pinnedTabsCache[node.id];
+    const pinnedClass = isPinned ? ' pinned-tab' : '';
+    
     html += `
-      <div class="tree-node">
+      <div class="tree-node${pinnedClass}">
         <span class="tree-structure">${treeStructure}</span>
         <img class="tree-icon" src="${escapedFavIcon}" onerror="this.style.display=&quot;none&quot;">
         <a class="tree-title" href="#" onclick="openTab(&quot;${escapedUrl}&quot;); return false;">${escapedTitle}</a>
@@ -360,7 +531,7 @@ function generateTreeHTML(nodes, depth = 0, parentLines = []) {
     // 递归处理子节点
     if (hasChildren) {
       currentLines[depth] = !isLast;
-      html += generateTreeHTML(node.children, depth + 1, currentLines);
+      html += generateTreeHTML(node.children, depth + 1, currentLines, pinnedTabsCache, i18nMessages);
     }
   });
   
