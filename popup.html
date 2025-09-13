@@ -69,6 +69,16 @@
       transition: border-color 0.3s ease;
       background-color: var(--bg-color);
     }
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .header-title .ext-icon {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+    }
     
     .tree-container {
       max-height: 454px;
@@ -817,7 +827,10 @@
 <body>
   <div class="main-container">
     <div class="header">
-      <h3 style="margin: 0; font-size: 16px; font-weight: 600;" data-i18n="tabTreeTitle">Tab Tree</h3>
+      <div class="header-title">
+        <img class="ext-icon" src="assets/icons/colorful-icon64.png" alt="">
+        <h5 style="margin: 0; font-size: 16px; font-weight: 600;" data-i18n="tabTreeTitle">Tab Tree</h5>
+      </div>
       <div class="header-buttons">
         <button class="nav-btn back-btn" id="backBtn" data-i18n-title="backBtn" disabled>‹</button>
         <button class="nav-btn forward-btn" id="forwardBtn" data-i18n-title="forwardBtn" disabled>›</button>
