@@ -7,7 +7,7 @@ echo "🚀 开始打包 Auto Tree Tabs 扩展..."
 
 # 创建临时打包目录
 TEMP_DIR="./build-temp"
-ZIP_NAME="auto-tree-tabs-v1.0.1.zip"
+ZIP_NAME="auto-tree-tabs-v1.0.2.zip"
 
 # 清理之前的构建
 if [ -d "$TEMP_DIR" ]; then
@@ -33,6 +33,37 @@ cp export.js "$TEMP_DIR/"
 cp i18n.js "$TEMP_DIR/"
 cp popup-init.js "$TEMP_DIR/"
 cp options-init.js "$TEMP_DIR/"
+
+# 复制新增的源码文件（供 background.js 通过 importScripts 加载）
+mkdir -p "$TEMP_DIR/src/background"
+cp src/background/PinnedTabPersistentStorage.js "$TEMP_DIR/src/background/" 2>/dev/null || echo "⚠️  src/background/PinnedTabPersistentStorage.js 不存在，跳过"
+cp src/background/DelayedMergeExecutor.js "$TEMP_DIR/src/background/" 2>/dev/null || echo "⚠️  src/background/DelayedMergeExecutor.js 不存在，跳过"
+cp src/background/SettingsCache.js "$TEMP_DIR/src/background/" 2>/dev/null || echo "⚠️  src/background/SettingsCache.js 不存在，跳过"
+cp src/background/tools.js "$TEMP_DIR/src/background/" 2>/dev/null || echo "⚠️  src/background/tools.js 不存在，跳过"
+
+# 在打包阶段将 importScripts 的依赖合并为一个文件，并内联到 background.js
+echo "🔗 合并 background 依赖为单文件..."
+BUNDLE_FILE="$TEMP_DIR/background.bundle.js"
+PACKED_BG="$TEMP_DIR/background.packed.js"
+
+# 按依赖顺序生成 bundle（先类/工具，再主逻辑）
+cat \
+  "$TEMP_DIR/src/background/PinnedTabPersistentStorage.js" \
+  "$TEMP_DIR/src/background/DelayedMergeExecutor.js" \
+  "$TEMP_DIR/src/background/SettingsCache.js" \
+  "$TEMP_DIR/src/background/tools.js" \
+  > "$BUNDLE_FILE"
+
+# 去除 background.js 中的 importScripts 行
+sed "/importScripts('src\\/background\\//d" "$TEMP_DIR/background.js" > "$TEMP_DIR/background.without_imports.js"
+
+# 生成打包用的 background.js（bundle + 去除import的主体）
+cat "$BUNDLE_FILE" "$TEMP_DIR/background.without_imports.js" > "$PACKED_BG"
+mv "$PACKED_BG" "$TEMP_DIR/background.js"
+rm -f "$TEMP_DIR/background.without_imports.js" "$BUNDLE_FILE"
+
+# 打包产物中不再需要分散的依赖文件
+rm -rf "$TEMP_DIR/src/background"
 
 # 复制国际化文件
 cp -r _locales "$TEMP_DIR/" 2>/dev/null || echo "⚠️  _locales目录不存在，跳过国际化文件"
