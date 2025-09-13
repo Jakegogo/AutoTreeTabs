@@ -23,6 +23,10 @@
     "message": "Forward", 
     "description": "Forward button"
   },
+  "tabTreeTitle": {
+    "message": "Tab Tree",
+    "description": "Popup header title"
+  },
   "exportBtn": {
     "message": "Export",
     "description": "Export button"

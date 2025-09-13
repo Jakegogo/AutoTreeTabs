@@ -24,6 +24,10 @@
     "message": "前進",
     "description": "前進按鈕"
   },
+  "tabTreeTitle": {
+    "message": "標籤樹",
+    "description": "彈窗標題"
+  },
   "exportBtn": {
     "message": "匯出",
     "description": "匯出按鈕"

@@ -24,6 +24,10 @@
     "message": "進む",
     "description": "進むボタン"
   },
+  "tabTreeTitle": {
+    "message": "タブツリー",
+    "description": "ポップアップのヘッダータイトル"
+  },
   "exportBtn": {
     "message": "エクスポート",
     "description": "エクスポートボタン"

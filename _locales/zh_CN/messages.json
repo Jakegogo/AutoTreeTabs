@@ -23,6 +23,10 @@
     "message": "前进",
     "description": "前进按钮"
   },
+  "tabTreeTitle": {
+    "message": "标签树",
+    "description": "弹窗头部标题"
+  },
   "exportBtn": {
     "message": "导出",
     "description": "导出按钮"

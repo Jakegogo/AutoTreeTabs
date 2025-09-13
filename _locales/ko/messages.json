@@ -24,6 +24,10 @@
     "message": "앞으로",
     "description": "앞으로 버튼"
   },
+  "tabTreeTitle": {
+    "message": "탭 트리",
+    "description": "팝업 헤더 제목"
+  },
   "exportBtn": {
     "message": "내보내기",
     "description": "내보내기 버튼"
