@@ -779,7 +779,8 @@
 
     /* 标签建议与历史行 */
     .tag-suggestions {
-      gap: 2px;
+      column-gap: 6px; /* 同行间距 */
+      row-gap: 16px;   /* 不显示多行时，增大行距，避免第二行露出 */
       padding: 0px 20px 2px 20px;
       height: 22px;
       flex-wrap: wrap;
@@ -792,9 +793,9 @@
       display: inline-flex;
       align-items: center;
       gap: 2px;
-      height: 22px;
-      line-height: 22px;
-      padding: 0 8px;
+      height: 20px;
+      line-height: 20px;
+      padding: 0 10px;
       border-radius: 999px;
       background: var(--hover-bg);
       color: var(--text-color);
