@@ -416,6 +416,7 @@ class StorageManager {
     this.pendingWrite = false; // 是否有待处理的写入请求
     this.WRITE_INTERVAL = 5000; // 5秒写入间隔
     this.maxHistorySize = 30; // 全局历史记录大小限制
+    this.defaultRecentFilter = undefined; // 最近筛选默认偏好（内存缓存）
   }
 
   // 获取persistentTree
@@ -612,6 +613,23 @@ class StorageManager {
     this.globalTabHistory = null;
     this.scheduleWrite();
     console.log('🗑️ Global tab history cleared');
+  }
+
+  // 最近筛选默认值：读取（带内存缓存）
+  async getDefaultRecentFilter() {
+    if (typeof this.defaultRecentFilter === 'boolean') {
+      return this.defaultRecentFilter;
+    }
+    const store = await chrome.storage.local.get('defaultRecentFilter');
+    this.defaultRecentFilter = !!store.defaultRecentFilter;
+    return this.defaultRecentFilter;
+  }
+
+  // 最近筛选默认值：写入并更新缓存
+  async setDefaultRecentFilter(value) {
+    this.defaultRecentFilter = !!value;
+    await chrome.storage.local.set({ defaultRecentFilter: this.defaultRecentFilter });
+    return true;
   }
 
   // 调度写入 - 并发安全版本
@@ -1506,6 +1524,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse({ isPinned });
         } else {
           sendResponse({ isPinned: false });
+        }
+      } else if (request.action === 'getDefaultRecentFilter') {
+        try {
+          const value = await storageManager.getDefaultRecentFilter();
+          sendResponse({ value });
+        } catch (e) {
+          sendResponse({ value: false });
+        }
+      } else if (request.action === 'setDefaultRecentFilter') {
+        try {
+          const ok = await storageManager.setDefaultRecentFilter(!!request.value);
+          sendResponse({ success: ok });
+        } catch (e) {
+          sendResponse({ success: false });
         }
       }
     } catch (error) {

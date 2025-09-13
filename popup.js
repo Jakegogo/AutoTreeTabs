@@ -146,6 +146,20 @@ let suppressAutoSearchOnce = false; // 防止 load 后 renderTree 再次触发 p
 let isRefreshingByRecent = false;   // 防止 performSearch 中重复触发 load
 let bookmarkedUrlsSet = null; // 懒加载
 
+// 最近标签持久化
+async function saveRecentPreference(enabled) {
+  try { await chrome.runtime.sendMessage({ action: 'setDefaultRecentFilter', value: !!enabled }); } catch {}
+}
+
+async function loadRecentPreference() {
+  try {
+    const res = await chrome.runtime.sendMessage({ action: 'getDefaultRecentFilter' });
+    return !!(res && res.value);
+  } catch {
+    return false;
+  }
+}
+
 // 渲染输入框内的标签chips
 function renderChipsLayer() {
   const chipsLayer = document.getElementById('chipsLayer');
@@ -163,7 +177,10 @@ function renderChipsLayer() {
     remove.addEventListener('click', async (e) => {
       e.stopPropagation();
       if (type === 'bookmarked') selectedFilters.bookmarked = false;
-      if (type === 'recent') selectedFilters.recent = false;
+      if (type === 'recent') {
+        selectedFilters.recent = false;
+        await saveRecentPreference(false);
+      }
       if (type === 'history') selectedFilters.historyTerm = null;
       renderChipsLayer();
       performSearch(document.getElementById('searchInput')?.value || '');
@@ -209,6 +226,7 @@ function renderTagSuggestions() {
 
   container.appendChild(makeChip(i18n('recent2h') || 'Recent 2h', async () => {
     selectedFilters.recent = !selectedFilters.recent;
+    await saveRecentPreference(selectedFilters.recent);
     // 触发一次 load，但避免 renderTree 的回调重复搜索
     suppressAutoSearchOnce = true;
     // await loadTabTree();
@@ -486,11 +504,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentTabId = activeTab.id;
   }
 
-  // 立即刷新并加载树形结构
-  await loadTabTree();
-
-  // 立即搜索
-  performSearch('');
+  // 读取“最近”默认偏好并应用
+  let preferRecent = false;
+  try {
+    preferRecent = await loadRecentPreference();
+  } catch {}
+  
+  if (preferRecent) {
+    selectedFilters.recent = true;
+    renderChipsLayer();
+    await performSearch(document.getElementById('searchInput')?.value || '');
+  } else {
+    // 立即刷新并加载树形结构
+    await loadTabTree();
+    // 立即搜索
+    performSearch('');
+  }
   
   // 绑定前进后退按钮事件
   document.getElementById('backBtn').addEventListener('click', async () => {
@@ -681,7 +710,7 @@ function buildTabTree(tabs, tabRelations) {
   
   // 如果启用“最近”筛选，则按 lastAccessed 倒序排序
   if (selectedFilters && selectedFilters.recent) {
-    tabs = tabs.sort((a, b) => b.lastAccessed - a.lastAccessed).slice(0, 20);
+    tabs = tabs.sort((a, b) => b.lastAccessed - a.lastAccessed).slice(0, 30);
   }
 
   // 创建标签页映射
