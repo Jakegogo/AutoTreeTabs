@@ -73,6 +73,7 @@
       display: flex;
       align-items: center;
       gap: 5px;
+      color: #555;
     }
     .header-title .ext-icon {
       width: 22px;
@@ -527,7 +528,7 @@
     }
     
     .export-btn {
-      background: #36f1f4;
+      background: #a842bb;
       color: white;
       border: none;
       padding: 6px 12px;
@@ -538,12 +539,12 @@
     }
     
     .export-btn:hover {
-      background: #21b9bb;
+      background: #7c26a0;
       transform: translateY(-1px);
     }
     
     .organize-btn {
-      background: #9C27B0;
+      background: #40a3dc; /* RAL 250 50 35 approx */
       color: white;
       border: none;
       padding: 6px 12px;
@@ -554,7 +555,7 @@
     }
     
     .organize-btn:hover {
-      background: #7B1FA2;
+      background: #258cbc;
       transform: translateY(-1px);
     }
     
@@ -667,9 +668,12 @@
       left: 12px;
       top: 50%;
       transform: translateY(-50%);
-      color: var(--text-color);
-      opacity: 0.6;
-      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      background-image: url('assets/search.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
       pointer-events: none;
       z-index: 1;
     }
@@ -835,14 +839,14 @@
         <button class="nav-btn back-btn" id="backBtn" data-i18n-title="backBtn" disabled>‹</button>
         <button class="nav-btn forward-btn" id="forwardBtn" data-i18n-title="forwardBtn" disabled>›</button>
         <button class="nav-btn refresh-btn" id="refreshBtn" data-i18n-title="refreshBtn">↻</button>
-        <button class="export-btn" id="exportBtn" data-i18n="exportBtn">Export</button>
         <button class="organize-btn" id="organizeBtn" data-i18n="organizeBtn">Organize</button>
+        <button class="export-btn" id="exportBtn" data-i18n="exportBtn">Export</button>
       </div>
     </div>
     
     <!-- 搜索框 -->
     <div class="search-container">
-      <span class="search-icon">🔍</span>
+      <span class="search-icon"></span>
       <input type="text" id="searchInput" class="search-input" data-i18n-placeholder="searchPlaceholder" autocomplete="off">
       <button class="clear-search-btn" id="clearSearchBtn" data-i18n-title="clearSearchBtn">×</button>
       <div class="chips-layer" id="chipsLayer"></div>
