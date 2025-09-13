@@ -31,7 +31,7 @@ AutoTreeTabs/
 │   ├── ja/messages.json          ← 日文
 │   └── ko/messages.json          ← 韩文
 ├── i18n.js                       ← 国际化工具库
-├── i18n-test.html                ← 测试页面
+├── test/i18n-test.html           ← 测试页面
 └── manifest.json                 ← 支持国际化
 ```
 
@@ -138,7 +138,7 @@ icon.title = i18n(config.title);
 
 ### **测试文件**
 ```
-📄 i18n-test.html      // 国际化功能测试页面
+📄 test/i18n-test.html // 国际化功能测试页面
 ```
 
 ### **测试步骤**
@@ -158,7 +158,7 @@ icon.title = i18n(config.title);
 3. **自动化测试**
    ```javascript
    // 运行测试页面
-   window.open('i18n-test.html')
+   window.open('test/i18n-test.html')
    ```
 
 ## 🚀 **商店发布策略**

@@ -8,7 +8,7 @@
 ✅ 重新排序特性重要程度         // 按用户需求排序  
 ✅ 完善商店描述文档             // 强调解决痛点
 ✅ 更新manifest.json           // 新标语和GitHub链接
-✅ 创建图标生成器               // generate-icons.html
+✅ 创建图标生成器               // test/generate-icons.html
 ✅ 准备隐私政策                 // 符合Chrome要求
 ✅ 制作打包脚本                 // package-extension.sh
 ✅ 准备截图指南                 // 专业截图制作说明
@@ -31,7 +31,7 @@
 ### **Step 1: 生成图标文件**
 ```bash
 # 1. 打开图标生成器 (已打开)
-open generate-icons.html
+open test/generate-icons.html
 
 # 2. 点击"生成所有图标"按钮
 # 3. 下载四个PNG文件：

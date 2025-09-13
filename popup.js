@@ -39,42 +39,42 @@ const FILE_TYPE_CONFIG = {
   pdf: {
     extensions: ['.pdf'],
     protocols: ['file://', 'chrome-extension://'],
-    icon: 'icon-pdf.svg',
+    icon: 'assets/icon-pdf.svg',
     title: 'pdfFile',
     bgColor: 'transparent'
   },
   html: {
     extensions: ['.html', '.htm'],
     protocols: ['file://', 'chrome-extension://'],
-    icon: 'icon-html.svg', 
+    icon: 'assets/icon-html.svg', 
     title: 'htmlFile',
     bgColor: 'transparent'
   },
   png: {
     extensions: ['.png'],
     protocols: ['file://', 'chrome-extension://'],
-    icon: 'icon-png.svg',
+    icon: 'assets/icon-png.svg',
     title: 'imageFile',
     bgColor: 'transparent'
   },
   jpg: {
     extensions: ['.jpg', '.jpeg'],
     protocols: ['file://', 'chrome-extension://'],
-    icon: 'icon-jpg.svg',
+    icon: 'assets/icon-jpg.svg',
     title: 'imageFile',
     bgColor: 'transparent'
   },
   svg: {
     extensions: ['.svg'],
     protocols: ['file://', 'chrome-extension://'],
-    icon: 'icon-svg.svg',
+    icon: 'assets/icon-svg.svg',
     title: 'imageFile',
     bgColor: 'transparent'
   },
   markdown: {
     extensions: ['.md', '.markdown'],
     protocols: ['file://', 'chrome-extension://'],
-    icon: 'icon-md.svg',
+    icon: 'assets/icon-md.svg',
     title: 'markdownFile',
     bgColor: 'transparent'
   },
@@ -1476,7 +1476,7 @@ window.debugPopup = {
   // PDF检测调试工具
   pdf: {
     isPdf: (url) => isPdfUrl(url),
-    getIconUrl: () => chrome.runtime.getURL('icon-pdf.svg'),
+    getIconUrl: () => chrome.runtime.getURL('assets/icon-pdf.svg'),
     testUrls: () => {
       const testUrls = [
         'chrome-extension://oemmndcbldboiebfnladdacbdfmadadm/file:///Users/jake/Library/Mobile%20Documents/com~apple~CloudDocs/Documents/%E6%8A%80%E6%9C%AF/%E6%8A%80%E6%9C%AF%E5%A4%A7%E4%BC%9A/qc5.pdf',
@@ -1487,7 +1487,7 @@ window.debugPopup = {
       ];
       
       console.log('🔍 PDF URL Detection Test:');
-      console.log('📄 PDF Icon URL:', chrome.runtime.getURL('icon-pdf.svg'));
+      console.log('📄 PDF Icon URL:', chrome.runtime.getURL('assets/icon-pdf.svg'));
       testUrls.forEach(url => {
         const result = isPdfUrl(url);
         console.log(`${result ? '✅' : '❌'} ${url} → ${result}`);

@@ -57,7 +57,7 @@
 ### **Step 1: 准备文件**
 ```bash
 # 1. 生成图标文件
-open generate-icons.html
+open test/generate-icons.html
 
 # 2. 打包扩展
 ./package-extension.sh

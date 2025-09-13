@@ -37,11 +37,8 @@ cp options-init.js "$TEMP_DIR/"
 # 复制国际化文件
 cp -r _locales "$TEMP_DIR/" 2>/dev/null || echo "⚠️  _locales目录不存在，跳过国际化文件"
 
-# 复制图标文件
-cp -r icons "$TEMP_DIR/" 2>/dev/null || echo "⚠️  icons目录不存在，请先生成图标文件"
-
-# 复制SVG图标
-cp icon-*.svg "$TEMP_DIR/" 2>/dev/null || echo "⚠️  部分SVG图标文件不存在"
+# 复制资源文件（icons与svg等都在assets内）
+cp -r assets "$TEMP_DIR/" 2>/dev/null || echo "⚠️  assets目录不存在，请先生成资源文件"
 
 # 排除不需要的文件
 echo "🗑️  清理不需要的文件..."
