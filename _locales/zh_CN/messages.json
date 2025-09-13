@@ -59,8 +59,12 @@
   },
   
   "bookmarked": {
-    "message": "已收藏",
+    "message": "书签",
     "description": "收藏状态"
+  },
+  "recent2h": {
+    "message": "最近",
+    "description": "最近2小时打开的标签筛选"
   },
   "audible": {
     "message": "正在播放音频",

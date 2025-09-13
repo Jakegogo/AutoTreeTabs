@@ -63,6 +63,10 @@
     "message": "已收藏",
     "description": "收藏狀態"
   },
+  "recent2h": {
+    "message": "最近",
+    "description": "最近2小時開啟的標籤篩選"
+  },
   "audible": {
     "message": "正在播放音訊",
     "description": "音訊播放狀態"

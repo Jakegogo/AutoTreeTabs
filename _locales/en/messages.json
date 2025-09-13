@@ -62,6 +62,10 @@
     "message": "Bookmarked",
     "description": "Bookmarked status"
   },
+  "recent2h": {
+    "message": "Recent",
+    "description": "Recently opened within 2 hours tag"
+  },
   "audible": {
     "message": "Playing audio",
     "description": "Audio playing status"

@@ -71,7 +71,7 @@
     }
     
     .tree-container {
-      max-height: 478px;
+      max-height: 454px;
       overflow-y: auto;
       font-family: Arial, "PingFangSC", "Microsoft YaHei", 微软雅黑, sans-serif;
       line-height: 26px;
@@ -532,10 +532,6 @@
       transform: translateY(-1px);
     }
     
-    /* refresh-btn样式已移除 */
-    
-    /* clear-btn样式已移除 */
-    
     .organize-btn {
       background: #9C27B0;
       color: white;
@@ -720,6 +716,37 @@
       display: flex;
     }
 
+    /* 输入框内标签层（chips layer） */
+    .chips-layer {
+      position: absolute;
+      left: 35px; /* 与输入左padding对齐 */
+      /* 右侧不固定，使用内容自适应宽度并设置最大宽度 */
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 6px;
+      pointer-events: none;
+      overflow: hidden;
+      white-space: nowrap;
+      width: max-content;
+      max-width: calc(100% - 65px); /* 35 左内边距 + 30 清除按钮区域 */
+    }
+
+    .chips-layer .tag-chip {
+      background: #e8f0fe;
+      border: 1px solid var(--border-color);
+      height: 18px;
+      line-height: 18px;
+      padding: 0 6px;
+      font-size: 10px;
+    }
+
+    .chips-layer .tag-chip .remove {
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
     /* 搜索高亮样式 */
     .search-highlight {
       background-color: yellow;
@@ -749,6 +776,41 @@
     .tree-node.hidden {
       display: none;
     }
+
+    /* 标签建议与历史行 */
+    .tag-suggestions {
+      gap: 2px;
+      padding: 0px 20px 2px 20px;
+      height: 22px;
+      flex-wrap: wrap;
+      align-items: center;
+      overflow-x: hidden;
+      overflow-y: hidden;
+    }
+
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      height: 22px;
+      line-height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: var(--hover-bg);
+      color: var(--text-color);
+      cursor: pointer;
+      font-size: 11px;
+      user-select: none;
+      transition: background-color 0.15s ease, opacity 0.15s ease;
+    }
+
+    .tag-chip:hover { opacity: 0.9; }
+    .tag-chip.active { background: #e3f2fd; }
+
+    .tag-chip .remove {
+      font-weight: 600;
+      opacity: 0.7;
+    }
   </style>
 </head>
 <body>
@@ -758,9 +820,9 @@
       <div class="header-buttons">
         <button class="nav-btn back-btn" id="backBtn" data-i18n-title="backBtn" disabled>‹</button>
         <button class="nav-btn forward-btn" id="forwardBtn" data-i18n-title="forwardBtn" disabled>›</button>
+        <button class="nav-btn refresh-btn" id="refreshBtn" data-i18n-title="refreshBtn">↻</button>
         <button class="export-btn" id="exportBtn" data-i18n="exportBtn">Export</button>
         <button class="organize-btn" id="organizeBtn" data-i18n="organizeBtn">Organize</button>
-        <!-- <button class="refresh-btn" id="refreshBtn">Refresh</button> -->
       </div>
     </div>
     
@@ -769,7 +831,9 @@
       <span class="search-icon">🔍</span>
       <input type="text" id="searchInput" class="search-input" data-i18n-placeholder="searchPlaceholder" autocomplete="off">
       <button class="clear-search-btn" id="clearSearchBtn" data-i18n-title="clearSearchBtn">×</button>
+      <div class="chips-layer" id="chipsLayer"></div>
     </div>
+    <div class="tag-suggestions" id="tagSuggestions"></div>
     
     <div class="tree-container" id="treeContainer">
       <!-- Tree nodes will be generated here -->

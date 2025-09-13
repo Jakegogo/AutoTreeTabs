@@ -63,6 +63,10 @@
     "message": "ブックマーク済み",
     "description": "ブックマーク状態"
   },
+  "recent2h": {
+    "message": "最近",
+    "description": "過去2時間以内に開いたタブのタグ"
+  },
   "audible": {
     "message": "音声再生中",
     "description": "音声再生状態"

@@ -63,6 +63,10 @@
     "message": "북마크됨",
     "description": "북마크 상태"
   },
+  "recent2h": {
+    "message": "최근",
+    "description": "최근 2시간 내에 연 탭 태그"
+  },
   "audible": {
     "message": "오디오 재생 중",
     "description": "오디오 재생 상태"

@@ -139,6 +139,150 @@ function isPdfUrl(url) {
 // 书签状态缓存
 const bookmarkCache = new Map();
 
+// 搜索标签与历史
+let selectedFilters = { bookmarked: false, recent: false, historyTerm: null, lastRecent: false, };
+let searchHistory = [];
+let suppressAutoSearchOnce = false; // 防止 load 后 renderTree 再次触发 performSearch 形成循环
+let isRefreshingByRecent = false;   // 防止 performSearch 中重复触发 load
+let bookmarkedUrlsSet = null; // 懒加载
+
+// 渲染输入框内的标签chips
+function renderChipsLayer() {
+  const chipsLayer = document.getElementById('chipsLayer');
+  if (!chipsLayer) return;
+  chipsLayer.innerHTML = '';
+
+  const addChip = (label, type) => {
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+    chip.textContent = label + ' ';
+    const remove = document.createElement('span');
+    remove.className = 'remove';
+    remove.textContent = '×';
+    remove.title = 'Remove';
+    remove.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (type === 'bookmarked') selectedFilters.bookmarked = false;
+      if (type === 'recent') selectedFilters.recent = false;
+      if (type === 'history') selectedFilters.historyTerm = null;
+      renderChipsLayer();
+      performSearch(document.getElementById('searchInput')?.value || '');
+    });
+    chip.appendChild(remove);
+    chipsLayer.appendChild(chip);
+  };
+
+  // 显示顺序：最近 → 书签 → 历史
+  if (selectedFilters.recent) addChip(i18n('recent2h') || 'Recent', 'recent');
+  if (selectedFilters.bookmarked) addChip(i18n('bookmarked') || 'Bookmarked', 'bookmarked');
+  if (selectedFilters.historyTerm) addChip(selectedFilters.historyTerm, 'history');
+
+  // 调整输入框左侧内边距，避免光标被chips遮挡
+  const input = document.getElementById('searchInput');
+  if (input) {
+    // 默认左padding为 35px（与CSS保持一致）
+    const basePadding = 35;
+    const gap = 6;
+    // 使用 scrollWidth 以获得内容真实宽度（不被max-width裁切）
+    const chipsWidth = chipsLayer.children.length > 0 ? Math.min(chipsLayer.scrollWidth, (input.clientWidth - basePadding - 30)) : 0;
+    const newPadding = chipsWidth > 0 ? (basePadding + chipsWidth + gap) : basePadding;
+    input.style.paddingLeft = newPadding + 'px';
+  }
+}
+
+// 渲染搜索框下方的标签建议
+function renderTagSuggestions() {
+  const container = document.getElementById('tagSuggestions');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const makeChip = (text, onClick) => {
+    const el = document.createElement('span');
+    el.className = 'tag-chip';
+    el.textContent = text;
+    el.addEventListener('mousedown', async (e) => { // 使用 mousedown 以便在失焦前触发
+      e.preventDefault();
+      await onClick();
+    });
+    return el;
+  };
+
+  container.appendChild(makeChip(i18n('recent2h') || 'Recent 2h', async () => {
+    selectedFilters.recent = !selectedFilters.recent;
+    // 触发一次 load，但避免 renderTree 的回调重复搜索
+    suppressAutoSearchOnce = true;
+    // await loadTabTree();
+    renderChipsLayer();
+    performSearch(document.getElementById('searchInput')?.value || '');
+  }));
+
+  container.appendChild(makeChip(i18n('bookmarked') || 'Bookmarked', async () => {
+    selectedFilters.bookmarked = !selectedFilters.bookmarked;
+    renderChipsLayer();
+    performSearch(document.getElementById('searchInput')?.value || '');
+  }));
+
+  // 加载历史
+  loadSearchHistory().then(() => {
+    // 最近输入的搜索历史 (最多3个)
+    (searchHistory || []).slice(0, 6).forEach(term => {
+      if (!term) return;
+      container.appendChild(makeChip(term, () => {
+        selectedFilters.historyTerm = term;
+        const input = document.getElementById('searchInput');
+        if (input) input.value = '';
+        renderChipsLayer();
+        performSearch('');
+      }));
+    });
+  });
+  container.style.display = 'flex';
+}
+
+
+async function loadSearchHistory() {
+  try {
+    const store = await chrome.storage.local.get('searchHistory');
+    searchHistory = Array.isArray(store.searchHistory) ? store.searchHistory : [];
+  } catch (e) {
+    searchHistory = [];
+  }
+}
+
+async function saveSearchHistory(term) {
+  const t = (term || '').trim();
+  if (!t) return;
+  // 排重并将最新放前
+  searchHistory = [t, ...searchHistory.filter(x => x !== t)].slice(0, 10);
+  try { await chrome.storage.local.set({ searchHistory }); } catch {}
+}
+
+async function getAllBookmarkedUrlSet() {
+  if (bookmarkedUrlsSet) return bookmarkedUrlsSet;
+  try {
+    const tree = await chrome.bookmarks.getTree();
+    const set = new Set();
+    const stack = [...tree];
+    while (stack.length) {
+      const node = stack.pop();
+      if (!node) continue;
+      if (node.url) {
+        try {
+          const u = new URL(node.url); u.hash = ''; set.add(u.href);
+        } catch {
+          set.add((node.url || '').split('#')[0]);
+        }
+      }
+      if (node.children) stack.push(...node.children);
+    }
+    bookmarkedUrlsSet = set;
+    return set;
+  } catch (e) {
+    bookmarkedUrlsSet = new Set();
+    return bookmarkedUrlsSet;
+  }
+}
+
 // 获取书签直接上级文件夹名称
 async function getBookmarkFolderPath(parentId) {
   if (!parentId) return null;
@@ -341,9 +485,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (activeTab) {
     currentTabId = activeTab.id;
   }
-  
+
   // 立即刷新并加载树形结构
   await loadTabTree();
+
+  // 立即搜索
+  performSearch('');
   
   // 绑定前进后退按钮事件
   document.getElementById('backBtn').addEventListener('click', async () => {
@@ -363,6 +510,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
   });
+  
+  // 刷新按钮：重新加载树结构
+  const refreshBtn = document.getElementById('refreshBtn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', async () => {
+      await loadTabTree();
+    });
+  }
   
   // 绑定导出按钮事件
   document.getElementById('exportBtn').addEventListener('click', async () => {
@@ -391,12 +546,46 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // 计算树形结构高度
   calculateTreeHeight();
-  // 滚动到当前标签页
-  scrollToCurrentTab();
   // 初始化导航按钮状态
   updateNavigationButtons();
   // 初始化国际化
   initI18n();
+
+  // 搜索框交互：聚焦时显示tag建议，失焦时隐藏（延迟以允许点击）
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.addEventListener('focus', () => {
+      renderTagSuggestions();
+    });
+
+    // 回车保存历史
+    searchInput.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter') {
+        await saveSearchHistory(searchInput.value);
+        renderTagSuggestions();
+      }
+      // 退格行为：当输入为空时，依次删除最后一个标签（历史 → 最近2h → 已收藏）
+      if (e.key === 'Backspace' && (searchInput.value || '').trim() === '') {
+        let removed = false;
+        if (selectedFilters.historyTerm) {
+          selectedFilters.historyTerm = null;
+          removed = true;
+        } else if (selectedFilters.recent) {
+          selectedFilters.recent = false;
+          removed = true;
+        } else if (selectedFilters.bookmarked) {
+          selectedFilters.bookmarked = false;
+          removed = true;
+        }
+        if (removed) {
+          e.preventDefault();
+          renderChipsLayer();
+          await performSearch('');
+        }
+      }
+    });
+  }
+
 });
 
 
@@ -477,6 +666,7 @@ async function loadTabTree() {
     
     // 渲染树
     renderTree(tree);
+
   } catch (error) {
     console.error('Error loading tab tree:', error);
   }
@@ -518,15 +708,21 @@ function buildTabTree(tabs, tabRelations) {
     }
   });
   
-  // 对置顶标签页按照置顶时间排序（最新置顶的在前）
+  // 排序逻辑
+  // 置顶：按置顶时间（新→旧）
   pinnedTabs.sort((a, b) => {
     const aTimestamp = pinnedTabsCache[a.id]?.timestamp || 0;
     const bTimestamp = pinnedTabsCache[b.id]?.timestamp || 0;
     return bTimestamp - aTimestamp;
   });
-  
-  // 对普通标签页按照索引排序
-  normalTabs.sort((a, b) => a.index - b.index);
+  // 如果启用“最近”筛选，则按 lastAccessed 倒序排序两个分组
+  if (selectedFilters && selectedFilters.recent) {
+    pinnedTabs.sort((a, b) => b.lastAccessed - a.lastAccessed);
+    normalTabs.sort((a, b) => b.lastAccessed - a.lastAccessed);
+  } else {
+    // 普通：按索引
+    normalTabs.sort((a, b) => a.index - b.index);
+  }
   
   // 置顶标签页在前，普通标签页在后
   return [...pinnedTabs, ...normalTabs];
@@ -538,9 +734,18 @@ function renderTree(tree) {
   container.innerHTML = '';
   
   // 分离置顶标签页和普通标签页
-  const pinnedTabs = tree.filter(node => pinnedTabsCache && pinnedTabsCache[node.id]);
-  const normalTabs = tree.filter(node => !pinnedTabsCache || !pinnedTabsCache[node.id]);
-  
+  let pinnedTabs = tree.filter(node => pinnedTabsCache && pinnedTabsCache[node.id]);
+  let normalTabs = tree.filter(node => !pinnedTabsCache || !pinnedTabsCache[node.id]);
+
+  // 最近模式：整体按 lastAccessed 倒序，仅保留前 15 条，再按置顶/普通拆分
+  if (selectedFilters && selectedFilters.recent) {
+    const combined = [...pinnedTabs, ...normalTabs]
+      .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))
+      .slice(0, 15);
+    pinnedTabs = combined.filter(n => pinnedTabsCache && pinnedTabsCache[n.id]);
+    normalTabs = combined.filter(n => !pinnedTabsCache || !pinnedTabsCache[n.id]);
+  }
+
   // 渲染置顶标签页
   pinnedTabs.forEach((node, index, array) => {
     renderNode(node, container, 0, [], false); // 置顶标签页不显示为最后一个
@@ -562,7 +767,11 @@ function renderTree(tree) {
   
   // 重新应用搜索过滤（如果有搜索词）
   if (currentSearchTerm) {
-    setTimeout(() => performSearch(currentSearchTerm), 30);
+    // 防抖处理，避免最近刷新后再次触发循环
+    setTimeout(() => {
+      if (suppressAutoSearchOnce) { suppressAutoSearchOnce = false; return; }
+      performSearch(currentSearchTerm);
+    }, 30);
   }
 }
 
@@ -891,9 +1100,17 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   nodeElement.appendChild(actionsContainer);
   
   // 点击节点事件 - 切换到该标签页并激活窗口
-  nodeElement.addEventListener('click', (e) => {
+  nodeElement.addEventListener('click', async (e) => {
     e.stopPropagation();
     console.log(`Node clicked: ${node.id} - ${node.title}`);
+    // 若当前有输入文本，且该项为书签，则记录搜索历史
+    try {
+      const input = document.getElementById('searchInput');
+      const term = (input && input.value ? input.value.trim() : '');
+      if (term) {
+        await saveSearchHistory(term);
+      }
+    } catch (_) {}
     activateTabAndWindow(node.id);
   });
   
@@ -966,7 +1183,7 @@ function scrollToCurrentTab() {
     const container = document.getElementById('treeContainer');
     
     // 计算节点相对于容器的位置
-    const nodeTop = currentNode.offsetTop;
+    const nodeTop = currentNode.offsetTop - currentNode.parentElement.offsetTop;
     const containerHeight = container.clientHeight;
     const nodeHeight = currentNode.offsetHeight;
     
@@ -1107,7 +1324,7 @@ function handleSearchKeydown(e) {
 }
 
 // 执行搜索
-function performSearch(searchTerm) {
+async function performSearch(searchTerm) {
   currentSearchTerm = normalizeText(searchTerm);
   const treeContainer = document.getElementById('treeContainer');
   
@@ -1117,26 +1334,47 @@ function performSearch(searchTerm) {
     normalized: currentSearchTerm,
     length: currentSearchTerm.length
   });
-  
-  if (!searchTerm) {
-    // 清空搜索，显示所有节点
-    showAllNodes();
-    removeNoResultsMessage();
-    return;
+
+  // 若启用“最近”，为保证顺序（标签打开/访问倒序），主动刷新一次树数据
+  // 避免循环：仅当不是由最近刷新触发时才调用
+  if ((selectedFilters.recent || selectedFilters.lastRecent) && !isRefreshingByRecent) {
+    try {
+      isRefreshingByRecent = true;
+      await loadTabTree(); // 重建树数据
+    } finally {
+      isRefreshingByRecent = false;
+    }
+    selectedFilters.lastRecent = selectedFilters.recent;
   }
   
-  // 搜索和过滤节点
-  const hasResults = filterNodes();
+  // 若没有任何文字与标签过滤，则显示所有
+  if (!searchTerm && !selectedFilters.bookmarked && !selectedFilters.recent && !selectedFilters.historyTerm) {
+    showAllNodes();
+    removeNoResultsMessage();
+    // 滚动到当前标签页
+    scrollToCurrentTab();
+    return;
+  }
+
+  // 如需书签过滤则预加载书签集合
+  if (selectedFilters.bookmarked && !bookmarkedUrlsSet) {
+    await getAllBookmarkedUrlSet();
+  }
+  
+  // 搜索和过滤节点（结合标签过滤）
+  const hasResults = await filterNodesWithTags();
   
   if (!hasResults) {
     showNoResultsMessage();
   } else {
     removeNoResultsMessage();
   }
+  // 滚动到当前标签页
+  scrollToCurrentTab();
 }
 
-// 过滤节点
-function filterNodes() {
+// 过滤节点（支持标签）
+async function filterNodesWithTags() {
   const allNodes = document.querySelectorAll('.tree-node');
   let hasVisibleResults = false;
   let hasPinnedResults = false;
@@ -1148,10 +1386,25 @@ function filterNodes() {
     const titleText = tabTitle ? normalizeText(tabTitle.textContent) : '';
     const tabId = parseInt(node.getAttribute('data-tab-id'));
     
-    // 检查标题和URL是否匹配搜索词
-    const titleMatches = titleText.includes(currentSearchTerm);
-    const urlMatches = normalizeText(tabUrl).includes(currentSearchTerm);
-    const matches = titleMatches || urlMatches;
+    // 文字匹配
+    const titleMatches = currentSearchTerm ? titleText.includes(currentSearchTerm) : true;
+    const urlMatches = currentSearchTerm ? normalizeText(tabUrl).includes(currentSearchTerm) : true;
+    let matches = titleMatches || urlMatches;
+
+    // 历史词匹配（如果选择了某个历史词，且未输入当前词，则只用历史词过滤）
+    if (matches && selectedFilters.historyTerm && !currentSearchTerm) {
+      const hist = normalizeText(selectedFilters.historyTerm);
+      matches = titleText.includes(hist) || normalizeText(tabUrl).includes(hist);
+    }
+
+    // 书签过滤
+    if (matches && selectedFilters.bookmarked) {
+      const normalize = (u) => { try { const x = new URL(u); x.hash = ''; return x.href; } catch { return (u||'').split('#')[0]; } };
+      const norm = normalize(tabUrl);
+      if (!bookmarkedUrlsSet || !bookmarkedUrlsSet.has(norm)) {
+        matches = false;
+      }
+    }
     
     // 调试前几个节点的搜索信息
     if (index < 3 && currentSearchTerm) {
@@ -1324,6 +1577,7 @@ function clearSearch() {
   currentSearchTerm = '';
   showAllNodes();
   removeNoResultsMessage();
+  renderChipsLayer();
 }
 
 // 重写渲染函数以支持搜索
@@ -1429,7 +1683,7 @@ function calculateTreeHeight() {
   }
   
   // 计算可用高度，保留20px安全边距
-  const availableHeight = popupHeight - usedHeight - 30;
+  const availableHeight = popupHeight - usedHeight - 30 - 24;
   
   // 设置最小高度200px，最大高度500px
   const finalHeight = Math.max(200, Math.min(500, availableHeight));
