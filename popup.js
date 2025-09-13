@@ -679,6 +679,11 @@ function buildTabTree(tabs, tabRelations) {
   const pinnedTabs = [];
   const normalTabs = [];
   
+  // 如果启用“最近”筛选，则按 lastAccessed 倒序排序
+  if (selectedFilters && selectedFilters.recent) {
+    tabs = tabs.sort((a, b) => b.lastAccessed - a.lastAccessed).slice(0, 20);
+  }
+
   // 创建标签页映射
   tabs.forEach(tab => {
     tabMap.set(tab.id, {
@@ -708,18 +713,14 @@ function buildTabTree(tabs, tabRelations) {
     }
   });
   
-  // 排序逻辑
-  // 置顶：按置顶时间（新→旧）
-  pinnedTabs.sort((a, b) => {
-    const aTimestamp = pinnedTabsCache[a.id]?.timestamp || 0;
-    const bTimestamp = pinnedTabsCache[b.id]?.timestamp || 0;
-    return bTimestamp - aTimestamp;
-  });
-  // 如果启用“最近”筛选，则按 lastAccessed 倒序排序两个分组
-  if (selectedFilters && selectedFilters.recent) {
-    pinnedTabs.sort((a, b) => b.lastAccessed - a.lastAccessed);
-    normalTabs.sort((a, b) => b.lastAccessed - a.lastAccessed);
-  } else {
+  // 普通排序逻辑
+  if (!selectedFilters || !selectedFilters.recent) {
+    // 置顶：按置顶时间（新→旧）
+    pinnedTabs.sort((a, b) => {
+      const aTimestamp = pinnedTabsCache[a.id]?.timestamp || 0;
+      const bTimestamp = pinnedTabsCache[b.id]?.timestamp || 0;
+      return bTimestamp - aTimestamp;
+    });
     // 普通：按索引
     normalTabs.sort((a, b) => a.index - b.index);
   }
@@ -736,15 +737,6 @@ function renderTree(tree) {
   // 分离置顶标签页和普通标签页
   let pinnedTabs = tree.filter(node => pinnedTabsCache && pinnedTabsCache[node.id]);
   let normalTabs = tree.filter(node => !pinnedTabsCache || !pinnedTabsCache[node.id]);
-
-  // 最近模式：整体按 lastAccessed 倒序，仅保留前 15 条，再按置顶/普通拆分
-  if (selectedFilters && selectedFilters.recent) {
-    const combined = [...pinnedTabs, ...normalTabs]
-      .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))
-      .slice(0, 15);
-    pinnedTabs = combined.filter(n => pinnedTabsCache && pinnedTabsCache[n.id]);
-    normalTabs = combined.filter(n => !pinnedTabsCache || !pinnedTabsCache[n.id]);
-  }
 
   // 渲染置顶标签页
   pinnedTabs.forEach((node, index, array) => {

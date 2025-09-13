@@ -1,5 +1,5 @@
 // 构建标签页树结构（包含置顶标签页支持）
-function buildTabTree(tabs, tabRelations, pinnedTabsCache = null) {
+function buildTabTreeForExport(tabs, tabRelations, pinnedTabsCache = null) {
   console.log('🏗️ Building tab tree with:', {
     tabsCount: tabs.length,
     relationsCount: Object.keys(tabRelations || {}).length,
@@ -123,7 +123,7 @@ async function exportTabTree() {
     }
     
     // 构建树形结构（包含置顶标签页）
-    const tree = buildTabTree(tabs, tabRelations, pinnedTabsCache);
+    const tree = buildTabTreeForExport(tabs, tabRelations, pinnedTabsCache);
     console.log('🌳 Built tree structure:', tree.length, 'root nodes');
     
     // 生成HTML内容
