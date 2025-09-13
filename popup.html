@@ -687,7 +687,8 @@
       color: var(--text-color);
       font-size: 12px;
       outline: none;
-      transition: all 0.2s ease;
+      /* 避免输入框右移时出现动画，仅保留边框/阴影的过渡 */
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .search-input:focus {
