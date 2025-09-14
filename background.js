@@ -232,50 +232,6 @@ const tabSnapshotExecutor = new DelayedMergeExecutor(200);
 let pluginClosedTabs = new Set();
 
 
-// 初始化设置缓存
-settingsCache.getSettings().catch(error => {
-  console.warn('Failed to initialize settings cache:', error);
-});
-
-// 定期清理过期的滚动位置（每小时执行一次）
-setInterval(async () => {
-  try {
-    await storageManager.cleanupOldScrollPositions();
-  } catch (error) {
-    console.error('Error during scroll position cleanup:', error);
-  }
-}, 60 * 60 * 1000); // 1小时
-
-// 启动时立即执行一次清理
-setTimeout(async () => {
-  try {
-    await storageManager.cleanupOldScrollPositions();
-    await pinnedTabStorage.cleanupInvalidPinnedTabs();
-    await pinnedTabStorage.cleanupExpiredPinnedTabs();
-  } catch (error) {
-    console.error('Error during initial cleanup:', error);
-  }
-}, 5000); // 5秒后执行
-
-// 定期清理无效的置顶标签页（每30分钟执行一次）
-setInterval(async () => {
-  try {
-    await pinnedTabStorage.cleanupInvalidPinnedTabs();
-  } catch (error) {
-    console.error('Error during pinned tabs cleanup:', error);
-  }
-}, 30 * 60 * 1000); // 30分钟
-
-// 定期清理过期的置顶标签页（每天执行一次）
-setInterval(async () => {
-  try {
-    await pinnedTabStorage.cleanupExpiredPinnedTabs();
-  } catch (error) {
-    console.error('Error during expired pinned tabs cleanup:', error);
-  }
-}, 24 * 60 * 60 * 1000); // 24小时
-
-
 
 // 监听标签页创建事件 - 优先使用 openerTabId + 持久化记录
 chrome.tabs.onCreated.addListener(async (tab) => {
@@ -844,3 +800,47 @@ settingsCache.getSettings().then(() => {
 
 // 初始化时立即建立快照
 updateTabSnapshot();
+
+// 初始化设置缓存
+settingsCache.getSettings().catch(error => {
+  console.warn('Failed to initialize settings cache:', error);
+});
+
+// 定期清理过期的滚动位置（每小时执行一次）
+setInterval(async () => {
+  try {
+    await storageManager.cleanupOldScrollPositions();
+  } catch (error) {
+    console.error('Error during scroll position cleanup:', error);
+  }
+}, 60 * 60 * 1000); // 1小时
+
+// 启动时立即执行一次清理
+setTimeout(async () => {
+  try {
+    await storageManager.cleanupOldScrollPositions();
+    await pinnedTabStorage.cleanupInvalidPinnedTabs();
+    await pinnedTabStorage.cleanupExpiredPinnedTabs();
+  } catch (error) {
+    console.error('Error during initial cleanup:', error);
+  }
+}, 5000); // 5秒后执行
+
+// 定期清理无效的置顶标签页（每30分钟执行一次）
+setInterval(async () => {
+  try {
+    await pinnedTabStorage.cleanupInvalidPinnedTabs();
+  } catch (error) {
+    console.error('Error during pinned tabs cleanup:', error);
+  }
+}, 30 * 60 * 1000); // 30分钟
+
+// 定期清理过期的置顶标签页（每天执行一次）
+setInterval(async () => {
+  try {
+    await pinnedTabStorage.cleanupExpiredPinnedTabs();
+  } catch (error) {
+    console.error('Error during expired pinned tabs cleanup:', error);
+  }
+}, 24 * 60 * 60 * 1000); // 24小时
+
