@@ -10,20 +10,20 @@ class SettingsCache {
   // 获取缓存的设置
   async getSettings() {
     const now = Date.now();
-    
+
     // 如果缓存有效，直接返回
     if (this.cache && (now - this.lastUpdate) < this.CACHE_DURATION) {
       return this.cache;
     }
-    
+
     // 如果正在读取中，等待现有的Promise
     if (this.pendingPromise) {
       return await this.pendingPromise;
     }
-    
+
     // 创建新的读取Promise
     this.pendingPromise = this.loadFromStorage();
-    
+
     try {
       const settings = await this.pendingPromise;
       this.cache = settings;
@@ -71,7 +71,7 @@ class SettingsCache {
     if (this.cache && (now - this.lastUpdate) < this.CACHE_DURATION) {
       return this.cache[featureName] !== false;
     }
-    
+
     // 没有缓存时，异步更新缓存（不阻塞当前调用）
     this.getSettings().catch(error => {
       console.warn('Failed to update settings cache:', error);
@@ -81,13 +81,13 @@ class SettingsCache {
     if (this.cache) {
       return this.cache[featureName] !== false;
     }
-    
+
     // 返回默认值（避免阻塞）
     const defaults = {
       autoRestore: true,
       smartSwitch: true
     };
-    
+
     return defaults[featureName] !== false;
   }
 
@@ -98,15 +98,15 @@ class SettingsCache {
     if (this.cache && (now - this.lastUpdate) < this.CACHE_DURATION) {
       return this.cache[featureName] !== false;
     }
-    
+
     // 没有缓存时，等待异步获取设置
     await this.getSettings();
-    
+
     // 重新获取缓存值
     if (this.cache) {
       return this.cache[featureName] !== false;
     }
-    
+
     // 如果仍然没有缓存，返回默认值
     const defaults = {
       autoRestore: true,
@@ -115,5 +115,14 @@ class SettingsCache {
     return defaults[featureName] !== false;
   }
 }
+
+
+// 监听设置变化，清除缓存
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.extensionSettings) {
+    console.log('📝 Extension settings changed, clearing cache');
+    settingsCache.clearCache();
+  }
+});
 
 

@@ -39,7 +39,9 @@ mkdir -p "$TEMP_DIR/src/background"
 cp src/background/PinnedTabPersistentStorage.js "$TEMP_DIR/src/background/" 2>/dev/null || echo "⚠️  src/background/PinnedTabPersistentStorage.js 不存在，跳过"
 cp src/background/DelayedMergeExecutor.js "$TEMP_DIR/src/background/" 2>/dev/null || echo "⚠️  src/background/DelayedMergeExecutor.js 不存在，跳过"
 cp src/background/SettingsCache.js "$TEMP_DIR/src/background/" 2>/dev/null || echo "⚠️  src/background/SettingsCache.js 不存在，跳过"
+cp src/background/StorageManager.js "$TEMP_DIR/src/background/" 2>/dev/null || echo "⚠️  src/background/StorageManager.js 不存在，跳过"
 cp src/background/tools.js "$TEMP_DIR/src/background/" 2>/dev/null || echo "⚠️  src/background/tools.js 不存在，跳过"
+cp src/background/AutoBackTrack.js "$TEMP_DIR/src/background/" 2>/dev/null || echo "⚠️  src/background/AutoBackTrack.js 不存在，跳过"
 
 # 在打包阶段将 importScripts 的依赖合并为一个文件，并内联到 background.js
 echo "🔗 合并 background 依赖为单文件..."
@@ -51,7 +53,9 @@ cat \
   "$TEMP_DIR/src/background/PinnedTabPersistentStorage.js" \
   "$TEMP_DIR/src/background/DelayedMergeExecutor.js" \
   "$TEMP_DIR/src/background/SettingsCache.js" \
+  "$TEMP_DIR/src/background/StorageManager.js" \
   "$TEMP_DIR/src/background/tools.js" \
+  "$TEMP_DIR/src/background/AutoBackTrack.js" \
   > "$BUNDLE_FILE"
 
 # 去除 background.js 中的 importScripts 行

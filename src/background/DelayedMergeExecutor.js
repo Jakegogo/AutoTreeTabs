@@ -27,7 +27,7 @@ class DelayedMergeExecutor {
 
     // 添加新事件到队列
     this.eventQueue.push(event);
-    
+
     console.log(`📝 Added delayed event (queue size: ${this.eventQueue.length})`);
 
     // 如果没有定时器，设置定时器
@@ -43,7 +43,7 @@ class DelayedMergeExecutor {
     this.timer = setTimeout(() => {
       this.executeEvents();
     }, this.delay);
-    
+
     console.log(`⏰ Scheduled execution in ${this.delay}ms`);
   }
 
@@ -52,7 +52,7 @@ class DelayedMergeExecutor {
    */
   executeEvents() {
     console.log(`🚀 Executing delayed events (queue size: ${this.eventQueue.length})`);
-    
+
     // 清除定时器
     this.timer = null;
 
@@ -66,7 +66,7 @@ class DelayedMergeExecutor {
     if (this.eventQueue.length === 1) {
       const event = this.eventQueue[0];
       this.eventQueue = [];
-      
+
       try {
         console.log(`✅ Executing single event`);
         event.func.apply(null, event.args);
@@ -79,10 +79,10 @@ class DelayedMergeExecutor {
     // 如果有多个事件，执行倒数第二个，保留最后一个
     const eventToExecute = this.eventQueue[this.eventQueue.length - 2];
     const lastEvent = this.eventQueue[this.eventQueue.length - 1];
-    
+
     // 清空队列，只保留最后一个事件
     this.eventQueue = [lastEvent];
-    
+
     try {
       console.log(`✅ Executing second-to-last event (keeping last in queue)`);
       eventToExecute.func.apply(null, eventToExecute.args);

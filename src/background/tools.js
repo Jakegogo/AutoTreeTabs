@@ -6,20 +6,20 @@ async function injectContentScript(tabId) {
       target: { tabId: tabId },
       func: () => window.autoTreeTabsContentScriptInjected || false
     });
-    
+
     if (!results[0]?.result) {
       // 注入content script
       await chrome.scripting.executeScript({
         target: { tabId: tabId },
         files: ['content.js']
       });
-      
+
       // 标记已注入
       await chrome.scripting.executeScript({
         target: { tabId: tabId },
         func: () => { window.autoTreeTabsContentScriptInjected = true; }
       });
-      
+
       console.log(`Content script injected into tab ${tabId}`);
     }
   } catch (error) {
@@ -28,3 +28,16 @@ async function injectContentScript(tabId) {
 }
 
 
+// 清理标签页的滚动位置（根据URL）
+async function cleanupScrollPositionForTab(tabId) {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    if (tab && tab.url) {
+      await storageManager.removeScrollPosition(tab.url);
+      console.log(`🗑️ Removed scroll position for ${tab.url}`);
+    }
+  } catch (error) {
+    // 标签页已关闭，无法获取URL，跳过清理
+    // console.log(`Could not clean scroll position for tab ${tabId}: tab no longer exists`);
+  }
+}

@@ -19,7 +19,7 @@ class PinnedTabPersistentStorage {
   async addPinnedTab(tabId, tabInfo) {
     try {
       const normalizedUrl = this.normalizeUrl(tabInfo.url);
-      
+
       if (!this.isValidUrl(normalizedUrl)) {
         console.log('🚫 Invalid URL for pinning:', normalizedUrl);
         return false;
@@ -35,7 +35,7 @@ class PinnedTabPersistentStorage {
       storageManager.pinnedTabsCache = pinnedTabs;
       storageManager.clearPinnedTabIdsCache(); // 清除缓存，下次获取时重建
       storageManager.scheduleWrite();
-      
+
       console.log(`📌 Added pinned tab by URL: ${normalizedUrl} - ${tabInfo.title}`);
       return true;
     } catch (error) {
@@ -49,7 +49,7 @@ class PinnedTabPersistentStorage {
     try {
       const tab = await chrome.tabs.get(tabId);
       const normalizedUrl = this.normalizeUrl(tab.url);
-      
+
       const pinnedTabs = await storageManager.getPinnedTabs();
       if (pinnedTabs[normalizedUrl]) {
         delete pinnedTabs[normalizedUrl];
@@ -83,21 +83,21 @@ class PinnedTabPersistentStorage {
     try {
       const pinnedTabs = await storageManager.getPinnedTabs();
       const pinnedUrls = Object.keys(pinnedTabs);
-      
+
       if (pinnedUrls.length === 0) {
         return {};
       }
-      
+
       const allTabs = await chrome.tabs.query({});
       const pinnedTabIdsCache = {};
-      
+
       allTabs.forEach(tab => {
         const normalizedUrl = this.normalizeUrl(tab.url);
         if (pinnedTabs[normalizedUrl]) {
           pinnedTabIdsCache[tab.id] = pinnedTabs[normalizedUrl];
         }
       });
-      
+
       console.log(`📌 Built pinned tab IDs cache: ${Object.keys(pinnedTabIdsCache).length} tabs`);
       return pinnedTabIdsCache;
     } catch (error) {
@@ -113,7 +113,7 @@ class PinnedTabPersistentStorage {
       const allTabs = await chrome.tabs.query({});
       const validUrls = new Set(allTabs.map(tab => this.normalizeUrl(tab.url)));
       let hasChanges = false;
-      
+
       for (const pinnedUrl of Object.keys(pinnedTabs)) {
         if (!validUrls.has(pinnedUrl)) {
           delete pinnedTabs[pinnedUrl];
@@ -121,14 +121,14 @@ class PinnedTabPersistentStorage {
           console.log(`🧹 Removed invalid pinned URL: ${pinnedUrl}`);
         }
       }
-      
+
       if (hasChanges) {
         storageManager.pinnedTabsCache = pinnedTabs;
         storageManager.clearPinnedTabIdsCache(); // 清除缓存，下次获取时重建
         storageManager.scheduleWrite();
         console.log('🧹 Cleaned up invalid pinned tabs');
       }
-      
+
       return hasChanges;
     } catch (error) {
       console.error('Error cleaning up pinned tabs:', error);
@@ -142,7 +142,7 @@ class PinnedTabPersistentStorage {
       const pinnedTabs = await storageManager.getPinnedTabs();
       const now = Date.now();
       let hasChanges = false;
-      
+
       for (const [url, data] of Object.entries(pinnedTabs)) {
         if (data.timestamp && (now - data.timestamp > this.maxAge)) {
           delete pinnedTabs[url];
@@ -150,14 +150,14 @@ class PinnedTabPersistentStorage {
           console.log(`🧹 Removed expired pinned URL: ${url}`);
         }
       }
-      
+
       if (hasChanges) {
         storageManager.pinnedTabsCache = pinnedTabs;
         storageManager.clearPinnedTabIdsCache(); // 清除缓存，下次获取时重建
         storageManager.scheduleWrite();
         console.log('🧹 Cleaned up expired pinned tabs');
       }
-      
+
       return hasChanges;
     } catch (error) {
       console.error('Error cleaning up expired pinned tabs:', error);
@@ -176,7 +176,7 @@ class PinnedTabPersistentStorage {
     if (!url || typeof url !== 'string' || url.trim() === '') {
       return false;
     }
-    
+
     // 排除无效的URL
     const invalidPrefixes = [
       'chrome://',
@@ -185,7 +185,7 @@ class PinnedTabPersistentStorage {
       'about:',
       'data:text/html'
     ];
-    
+
     return !invalidPrefixes.some(prefix => url.startsWith(prefix));
   }
 }
