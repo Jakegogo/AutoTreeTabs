@@ -43,6 +43,7 @@ class SettingsCache {
         const defaultSettings = {
           autoRestore: true,
           smartSwitch: true, // 默认启用智能标签切换
+          showTabGroups: false, // 默认不显示分组
           ...settings
         };
         resolve(defaultSettings);
@@ -85,7 +86,8 @@ class SettingsCache {
     // 返回默认值（避免阻塞）
     const defaults = {
       autoRestore: true,
-      smartSwitch: true
+      smartSwitch: true,
+      showTabGroups: false
     };
 
     return defaults[featureName] !== false;
@@ -110,7 +112,8 @@ class SettingsCache {
     // 如果仍然没有缓存，返回默认值
     const defaults = {
       autoRestore: true,
-      smartSwitch: true
+      smartSwitch: true,
+      showTabGroups: false
     };
     return defaults[featureName] !== false;
   }

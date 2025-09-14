@@ -18,6 +18,9 @@
     "https://*/*",
     "http://*/*"
   ],
+  "optional_permissions": [
+    "tabGroups"
+  ],
   "icons": {
     "16": "assets/icons/icon16.png",
     "32": "assets/icons/icon32.png", 

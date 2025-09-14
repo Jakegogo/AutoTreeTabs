@@ -550,12 +550,30 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // 绑定导出按钮事件
   document.getElementById('exportBtn').addEventListener('click', async () => {
-    await exportTabTree();
+    try {
+      if (!window.__exportModuleLoaded) {
+        await loadScriptOnce('export.js');
+        window.__exportModuleLoaded = true;
+      }
+      await exportTabTree();
+    } catch (e) {
+      console.error('Failed to load export module:', e);
+    }
   });
   
   // 绑定自动整理按钮事件
   document.getElementById('organizeBtn').addEventListener('click', async () => {
     // 检查AutoOrganizer类或实例是否可用
+    try {
+      if (!window.AutoOrganizer && !window.autoOrganizer) {
+        if (!window.__organizeModuleLoaded) {
+          await loadScriptOnce('auto-organize.js');
+          window.__organizeModuleLoaded = true;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load auto-organize module:', e);
+    }
     const AutoOrganizerClass = window.AutoOrganizer;
     const autoOrganizerInstance = window.autoOrganizer;
     
@@ -625,6 +643,8 @@ const RESTORE_COOLDOWN = 3000; // 3秒冷却时间
 
 // 全局置顶标签页缓存
 let pinnedTabsCache = {};
+// 全局标签组信息缓存（在 loadTabTree 中填充）
+let tabGroupInfo = {};
 
 // 加载标签页树结构
 async function loadTabTree() {
@@ -689,6 +709,25 @@ async function loadTabTree() {
     
     // 获取当前所有标签页
     const tabs = await chrome.tabs.query({});
+
+    // 预取分组信息（基于设置与权限），失败则忽略
+    tabGroupInfo = {};
+    const enableGroups = await chrome.runtime.sendMessage({ action: 'isFeatureEnabled', feature: 'showTabGroups' }).catch(() => false);
+    if (enableGroups && chrome.tabGroups && typeof chrome.tabGroups.get === 'function') {
+      try {
+        const groupIds = Array.from(new Set((tabs || []).map(t => t.groupId).filter(id => typeof id === 'number' && id >= 0)));
+        for (const gid of groupIds) {
+          try {
+            const info = await chrome.tabGroups.get(gid);
+            tabGroupInfo[gid] = info || {};
+          } catch (e) {
+            tabGroupInfo[gid] = {};
+          }
+        }
+      } catch (e) {
+        tabGroupInfo = {};
+      }
+    }
     
     // 构建树结构
     const tree = buildTabTree(tabs, tabRelations);
@@ -699,6 +738,23 @@ async function loadTabTree() {
   } catch (error) {
     console.error('Error loading tab tree:', error);
   }
+}
+// 动态按需加载脚本（只加载一次）
+async function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[data-dynamic="${src}"]`)) {
+      resolve();
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.defer = true;
+    s.dataset.dynamic = src;
+    s.onload = () => resolve();
+    s.onerror = (e) => reject(e);
+    document.body.appendChild(s);
+  });
 }
 
 // 构建标签页树结构
@@ -750,8 +806,11 @@ function buildTabTree(tabs, tabRelations) {
       const bTimestamp = pinnedTabsCache[b.id]?.timestamp || 0;
       return bTimestamp - aTimestamp;
     });
-    // 普通：按索引
-    normalTabs.sort((a, b) => a.index - b.index);
+    // 普通：按 windowId + index 组合排序
+    normalTabs.sort((a, b) => {
+      if (a.windowId !== b.windowId) return a.windowId - b.windowId;
+      return a.index - b.index;
+    });
   }
   
   // 置顶标签页在前，普通标签页在后
@@ -767,22 +826,87 @@ function renderTree(tree) {
   let pinnedTabs = tree.filter(node => pinnedTabsCache && pinnedTabsCache[node.id]);
   let normalTabs = tree.filter(node => !pinnedTabsCache || !pinnedTabsCache[node.id]);
 
+  // 置顶标题分隔符（在前）
+  if (pinnedTabs.length > 0) {
+    const header = document.createElement('div');
+    header.className = 'pinned-separator';
+    const label = document.createElement('span');
+    label.className = 'separator-label';
+    label.textContent = i18n('pinnedTabs') || '📌';
+    const line = document.createElement('div');
+    line.className = 'separator-line';
+    header.appendChild(label);
+    header.appendChild(line);
+    container.appendChild(header);
+  }
+  
   // 渲染置顶标签页
   pinnedTabs.forEach((node, index, array) => {
     renderNode(node, container, 0, [], false); // 置顶标签页不显示为最后一个
   });
   
-  // 如果有置顶标签页，添加分隔线
+  // 置顶尾部：如后续无其他分隔符，则补一条横线
   if (pinnedTabs.length > 0 && normalTabs.length > 0) {
-    const separator = document.createElement('div');
-    separator.className = 'pinned-separator';
-    separator.innerHTML = '<div class="separator-line"></div>';
-    container.appendChild(separator);
+    const firstNormal = normalTabs[0];
+    const firstIsGrouped = typeof firstNormal.groupId === 'number' && firstNormal.groupId >= 0;
+    if (!firstIsGrouped) {
+      const tail = document.createElement('div');
+      tail.className = 'pinned-separator';
+      const line = document.createElement('div');
+      line.className = 'separator-line';
+      tail.appendChild(line);
+      container.appendChild(tail);
+    }
   }
   
-  // 渲染普通标签页
+  // 渲染普通标签页（在组前插入分隔符与组名）
+  const hasGroupInfo = tabGroupInfo && Object.keys(tabGroupInfo).length > 0;
+  let prevGroupId = null;
+  let prevWindowId = null;
   normalTabs.forEach((node, index, array) => {
+    const currGroupId = (typeof node.groupId === 'number') ? node.groupId : -1;
+    const currWindowId = node.windowId;
+    const currIsGrouped = currGroupId !== -1;
+
+    const windowChanged = index > 0 && currWindowId !== prevWindowId;
+    const groupChanged = index === 0 ? false : (windowChanged || currGroupId !== prevGroupId);
+
+    // 如果从一个分组过渡到“非分组”，为上一分组补一条纯横线；
+    // 若下一个仍是分组则不需要（避免与新分组头部分隔符重复）
+    if (hasGroupInfo && index > 0) {
+      const prevWasGrouped = prevGroupId !== -1;
+      if (prevWasGrouped && groupChanged && !currIsGrouped) {
+        const tail = document.createElement('div');
+        tail.className = 'pinned-separator';
+        const line = document.createElement('div');
+        line.className = 'separator-line';
+        tail.appendChild(line);
+        container.appendChild(tail);
+      }
+    }
+
+    // 在当前分组的第一个元素之前插入分隔符（含组名）——仅在有分组信息时显示
+    if (hasGroupInfo && ((index === 0 && currIsGrouped) || (groupChanged && currIsGrouped))) {
+      const header = document.createElement('div');
+      header.className = 'pinned-separator';
+
+      const label = document.createElement('span');
+      label.className = 'separator-label';
+      const title = (tabGroupInfo[currGroupId] && tabGroupInfo[currGroupId].title) ? tabGroupInfo[currGroupId].title : (i18n('tabGroup') || 'Group');
+      label.textContent = title;
+
+      const line = document.createElement('div');
+      line.className = 'separator-line';
+
+      header.appendChild(label);
+      header.appendChild(line);
+      container.appendChild(header);
+    }
+
     renderNode(node, container, 0, [], index === array.length - 1);
+
+    prevGroupId = currGroupId;
+    prevWindowId = currWindowId;
   });
 
   

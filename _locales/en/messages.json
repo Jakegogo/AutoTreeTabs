@@ -433,6 +433,18 @@
     "message": "📌 Pinned Tabs",
     "description": "Pinned tabs section separator"
   },
+  "showTabGroupsTitle": {
+    "message": "Show Tab Groups",
+    "description": "Setting: show tab groups toggle"
+  },
+  "showTabGroupsDesc": {
+    "message": "Display browser tab groups and separators in the popup (requires permission)",
+    "description": "Setting description: show tab groups"
+  },
+  "tabGroup": {
+    "message": "Group",
+    "description": "Default tab group name"
+  },
   "confirmOpenAllTabs": {
     "message": "Are you sure you want to open all {count} tabs? This might open a lot of browser windows.",
     "description": "Confirmation message for opening all tabs"

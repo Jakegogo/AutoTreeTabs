@@ -411,7 +411,7 @@
     "description": "総タブ数ラベル"
   },
   "pinnedTabs": {
-    "message": "個固定",
+    "message": "固定",
     "description": "固定タブ数"
   },
   "normalTabs": {
@@ -433,6 +433,18 @@
   "pinnedTabsSection": {
     "message": "📌 固定タブ",
     "description": "固定タブセクション区切り"
+  },
+  "showTabGroupsTitle": {
+    "message": "タブグループを表示",
+    "description": "設定項目：タブグループ表示トグル"
+  },
+  "showTabGroupsDesc": {
+    "message": "ポップアップでブラウザのタブグループと区切り線を表示（権限が必要）",
+    "description": "設定説明：タブグループ表示"
+  },
+  "tabGroup": {
+    "message": "グループ",
+    "description": "タブグループのデフォルト名"
   },
   "confirmOpenAllTabs": {
     "message": "本当に{count}個のタブをすべて開きますか？多くのブラウザウィンドウが開く可能性があります。",

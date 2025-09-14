@@ -411,7 +411,7 @@
     "description": "총 탭 수 레이블"
   },
   "pinnedTabs": {
-    "message": "개 고정",
+    "message": "고정",
     "description": "고정된 탭 수"
   },
   "normalTabs": {
@@ -433,6 +433,18 @@
   "pinnedTabsSection": {
     "message": "📌 고정된 탭",
     "description": "고정된 탭 섹션 구분선"
+  },
+  "showTabGroupsTitle": {
+    "message": "탭 그룹 표시",
+    "description": "설정 항목: 탭 그룹 표시 토글"
+  },
+  "showTabGroupsDesc": {
+    "message": "팝업에서 브라우저의 탭 그룹과 구분선을 표시합니다 (권한 필요)",
+    "description": "설명: 탭 그룹 표시"
+  },
+  "tabGroup": {
+    "message": "그룹",
+    "description": "탭 그룹 기본 이름"
   },
   "confirmOpenAllTabs": {
     "message": "정말로 {count}개의 모든 탭을 열시겠습니까? 많은 브라우저 창이 열릴 수 있습니다.",

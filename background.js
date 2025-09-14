@@ -146,16 +146,8 @@ class TabTreePersistentStorage {
         if (childTab && parentTab && childTab.id !== parentTab.id && !restoredRelations[childTab.id]) {
           restoredRelations[childTab.id] = parentTab.id;
           restoredCount++;
-          // console.log(`✓ Restored: ${childTab.id}(${relation.child.url}) -> ${parentTab.id}(${relation.parent.url})`);
         } else {
           unmatchedCount++;
-          if (!childTab) {
-            // console.log(`❌ Child not found: ${relation.child.url}`);
-          } else if (!parentTab) {
-            // console.log(`❌ Parent not found: ${relation.parent.url}`);
-          } else if (restoredRelations[childTab.id]) {
-            // console.log(`⚠️ Already restored: ${childTab.id}`);
-          }
         }
       });
       
@@ -171,6 +163,7 @@ class TabTreePersistentStorage {
         }
       });
       
+      // 保存标签页关系
       storageManager.saveTabRelations(restoredRelations);
       console.log(`🎉 Total restored: ${restoredCount} relations (${unmatchedCount} unmatched)`);
       
@@ -488,6 +481,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse(restoredRelations);
         } else {
           sendResponse(tabRelations);
+        }
+      } else if (request.action === 'isFeatureEnabled') {
+        try {
+          const enabled = await settingsCache.isFeatureEnabledSync(request.feature);
+          sendResponse(enabled === true);
+        } catch (e) {
+          sendResponse(false);
         }
       } else if (request.action === 'saveScrollPosition') {
         // 保存滚动位置

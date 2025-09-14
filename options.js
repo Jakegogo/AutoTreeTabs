@@ -22,6 +22,7 @@ class OptionsManager {
     document.getElementById('autoRestoreToggle').checked = settings.autoRestore !== false;
     document.getElementById('smartSwitchToggle').checked = settings.smartSwitch !== false;
     document.getElementById('restoreScrollToggle').checked = settings.restoreScroll !== false;
+    document.getElementById('showTabGroupsToggle').checked = settings.showTabGroups === true;
     
     // 显示版本信息
     const manifest = chrome.runtime.getManifest();
@@ -106,6 +107,26 @@ class OptionsManager {
 
     document.getElementById('restoreScrollToggle').addEventListener('change', (e) => {
       this.updateSetting('restoreScroll', e.target.checked);
+    });
+
+    // 显示分组 - 请求可选权限
+    document.getElementById('showTabGroupsToggle').addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      if (enabled) {
+        try {
+          const granted = await chrome.permissions.request({ permissions: ['tabGroups'] });
+          if (!granted) {
+            e.target.checked = false;
+            this.showNotification('Permission denied: tabGroups', 'error');
+            return;
+          }
+        } catch (err) {
+          e.target.checked = false;
+          this.showNotification('Permission request failed', 'error');
+          return;
+        }
+      }
+      this.updateSetting('showTabGroups', enabled);
     });
   }
 
@@ -251,16 +272,15 @@ This action CANNOT be undone!`;
   }
 }
 
-// 当DOM加载完成后初始化
-document.addEventListener('DOMContentLoaded', () => {
-  window.optionsManager = new OptionsManager();
-});
-
-// 支持页面已经加载完成的情况
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+// 确保只初始化一次，避免重复注册事件导致权限弹窗出现两次
+(function initOptionsOnce() {
+  if (window.__optionsInitialized) return;
+  window.__optionsInitialized = true;
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      window.optionsManager = new OptionsManager();
+    });
+  } else {
     window.optionsManager = new OptionsManager();
-  });
-} else {
-  window.optionsManager = new OptionsManager();
-}
+  }
+})();
