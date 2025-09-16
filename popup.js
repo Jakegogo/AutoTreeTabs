@@ -504,7 +504,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     currentTabId = activeTab.id;
   }
 
-  // 读取“最近”默认偏好并应用
+  // 读取"最近"默认偏好并应用
   let preferRecent = false;
   try {
     preferRecent = await loadRecentPreference();
@@ -764,9 +764,14 @@ function buildTabTree(tabs, tabRelations) {
   const pinnedTabs = [];
   const normalTabs = [];
   
-  // 如果启用“最近”筛选，则按 lastAccessed 倒序排序
+  // 如果启用"最近"筛选：
+  // - 当未启用分组时，按 lastAccessed 倒序全局排序并截取前30
+  // - 当启用分组时，保留原列表，稍后在组内进行按时间排序
   if (selectedFilters && selectedFilters.recent) {
-    tabs = tabs.sort((a, b) => b.lastAccessed - a.lastAccessed).slice(0, 30);
+    const hasGroupInfo = tabGroupInfo && Object.keys(tabGroupInfo).length > 0;
+    if (!hasGroupInfo) {
+      tabs = tabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0)).slice(0, 30);
+    }
   }
 
   // 创建标签页映射
@@ -811,6 +816,22 @@ function buildTabTree(tabs, tabRelations) {
       if (a.windowId !== b.windowId) return a.windowId - b.windowId;
       return a.index - b.index;
     });
+  } else {
+    // 启用"最近"筛选时，如有分组，则先按分组聚合，再在组内按时间倒序
+    const hasGroupInfo = tabGroupInfo && Object.keys(tabGroupInfo).length > 0;
+    if (hasGroupInfo) {
+      normalTabs.sort((a, b) => {
+        const aGroup = (typeof a.groupId === 'number' && a.groupId >= 0) ? a.groupId : Number.MAX_SAFE_INTEGER;
+        const bGroup = (typeof b.groupId === 'number' && b.groupId >= 0) ? b.groupId : Number.MAX_SAFE_INTEGER;
+        if (aGroup !== bGroup) return aGroup - bGroup; // 分组优先
+        const aTime = a.lastAccessed || 0;
+        const bTime = b.lastAccessed || 0;
+        return bTime - aTime; // 组内按时间倒序
+      });
+    } else {
+      // 无分组则保持原来的时间倒序即可（此时 tabs 已全局截断为30）
+      normalTabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+    }
   }
   
   // 置顶标签页在前，普通标签页在后
@@ -830,6 +851,7 @@ function renderTree(tree) {
   if (pinnedTabs.length > 0) {
     const header = document.createElement('div');
     header.className = 'pinned-separator';
+    header.dataset.separatorType = 'pinned-header';
     const label = document.createElement('span');
     label.className = 'separator-label';
     label.textContent = i18n('pinnedTabs') || '📌';
@@ -842,27 +864,17 @@ function renderTree(tree) {
   
   // 渲染置顶标签页
   pinnedTabs.forEach((node, index, array) => {
-    renderNode(node, container, 0, [], false); // 置顶标签页不显示为最后一个
+    node.groupId = -1; // 显式标记置顶不属于任何分组，避免被聚合进分组
+    renderNode(node, container, 0, [], false);
   });
   
-  // 置顶尾部：如后续无其他分隔符，则补一条横线
-  if (pinnedTabs.length > 0 && normalTabs.length > 0) {
-    const firstNormal = normalTabs[0];
-    const firstIsGrouped = typeof firstNormal.groupId === 'number' && firstNormal.groupId >= 0;
-    if (!firstIsGrouped) {
-      const tail = document.createElement('div');
-      tail.className = 'pinned-separator';
-      const line = document.createElement('div');
-      line.className = 'separator-line';
-      tail.appendChild(line);
-      container.appendChild(tail);
-    }
-  }
+  // 置顶与普通分组之间不再追加末尾横线
   
   // 渲染普通标签页（在组前插入分隔符与组名）
   const hasGroupInfo = tabGroupInfo && Object.keys(tabGroupInfo).length > 0;
   let prevGroupId = null;
   let prevWindowId = null;
+  let seenGrouped = false;
   normalTabs.forEach((node, index, array) => {
     const currGroupId = (typeof node.groupId === 'number') ? node.groupId : -1;
     const currWindowId = node.windowId;
@@ -871,24 +883,27 @@ function renderTree(tree) {
     const windowChanged = index > 0 && currWindowId !== prevWindowId;
     const groupChanged = index === 0 ? false : (windowChanged || currGroupId !== prevGroupId);
 
-    // 如果从一个分组过渡到“非分组”，为上一分组补一条纯横线；
-    // 若下一个仍是分组则不需要（避免与新分组头部分隔符重复）
-    if (hasGroupInfo && index > 0) {
-      const prevWasGrouped = prevGroupId !== -1;
-      if (prevWasGrouped && groupChanged && !currIsGrouped) {
-        const tail = document.createElement('div');
-        tail.className = 'pinned-separator';
-        const line = document.createElement('div');
-        line.className = 'separator-line';
-        tail.appendChild(line);
-        container.appendChild(tail);
-      }
-    }
+    // 在分组切换前，为上一分组插入"尾部分隔符"
+    // if (hasGroupInfo && index > 0) {
+    //   const prevWasGrouped = prevGroupId !== -1 && prevGroupId !== null;
+    //   if (prevWasGrouped && groupChanged) {
+    //     const tail = document.createElement('div');
+    //     tail.className = 'pinned-separator';
+    //     tail.dataset.separatorType = 'group-tail';
+    //     const tailLine = document.createElement('div');
+    //     tailLine.className = 'separator-line';
+    //     tail.appendChild(tailLine);
+    //     container.appendChild(tail);
+    //   }
+    // }
 
-    // 在当前分组的第一个元素之前插入分隔符（含组名）——仅在有分组信息时显示
-    if (hasGroupInfo && ((index === 0 && currIsGrouped) || (groupChanged && currIsGrouped))) {
+    // 在当前分组的第一个元素之前插入分隔符（含组名）——仅在有分组信息且该节点确属分组时显示
+    if (hasGroupInfo && currIsGrouped && ((index === 0) || groupChanged)) {
       const header = document.createElement('div');
       header.className = 'pinned-separator';
+      header.dataset.separatorType = 'group-header';
+      header.dataset.groupId = String(currGroupId);
+      header.dataset.groupId = String(currGroupId);
 
       const label = document.createElement('span');
       label.className = 'separator-label';
@@ -901,7 +916,10 @@ function renderTree(tree) {
       header.appendChild(label);
       header.appendChild(line);
       container.appendChild(header);
+      seenGrouped = true;
     }
+
+    // 未分组区不再强制插入分隔符，由分隔符可见性函数控制
 
     renderNode(node, container, 0, [], index === array.length - 1);
 
@@ -909,15 +927,24 @@ function renderTree(tree) {
     prevWindowId = currWindowId;
   });
 
-  
-  // 重新应用搜索过滤（如果有搜索词）
-  if (currentSearchTerm) {
-    // 防抖处理，避免最近刷新后再次触发循环
-    setTimeout(() => {
-      if (suppressAutoSearchOnce) { suppressAutoSearchOnce = false; return; }
-      performSearch(currentSearchTerm);
-    }, 30);
+  // 列表末尾若最后一个是"分组"，补一个尾部分隔符
+  if (hasGroupInfo && normalTabs.length > 0) {
+    const lastNode = normalTabs[normalTabs.length - 1];
+    const lastGroupId = (typeof lastNode.groupId === 'number') ? lastNode.groupId : -1;
+    if (lastGroupId !== -1) {
+      const tail = document.createElement('div');
+      tail.className = 'pinned-separator';
+      tail.dataset.separatorType = 'group-tail';
+      tail.dataset.groupId = String(lastGroupId);
+      const tailLine = document.createElement('div');
+      tailLine.className = 'separator-line';
+      tail.appendChild(tailLine);
+      container.appendChild(tail);
+    }
   }
+
+  // 渲染完成后更新一次分隔符可见性，避免初始状态异常
+  updateSeparatorVisibility();
 }
 
 // 从DOM中移除指定的标签页元素
@@ -961,6 +988,7 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   nodeElement.className = 'tree-node';
   nodeElement.dataset.tabId = node.id;
   nodeElement.dataset.tabUrl = node.url || '';
+  nodeElement.dataset.groupId = (typeof node.groupId === 'number' && node.groupId >= 0) ? String(node.groupId) : '-1';
   
   // 检查是否是当前标签页
   if (node.id === currentTabId) {
@@ -1480,9 +1508,9 @@ async function performSearch(searchTerm) {
     length: currentSearchTerm.length
   });
 
-  // 若启用“最近”，为保证顺序（标签打开/访问倒序），主动刷新一次树数据
+  // 若启用"最近"，为保证顺序（标签打开/访问倒序），主动刷新一次树数据
   // 避免循环：仅当不是由最近刷新触发时才调用
-  if ((selectedFilters.recent || selectedFilters.lastRecent) && !isRefreshingByRecent) {
+  if ((selectedFilters.recent != selectedFilters.lastRecent) && !isRefreshingByRecent) {
     try {
       isRefreshingByRecent = true;
       await loadTabTree(); // 重建树数据
@@ -1587,18 +1615,59 @@ async function filterNodesWithTags() {
     }
   });
   
-  // 智能显示/隐藏分隔线
-  const separator = document.querySelector('.pinned-separator');
-  if (separator) {
-    // 只有当置顶和普通标签页都有匹配结果时才显示分隔线
-    if (hasPinnedResults && hasNormalResults) {
-      separator.style.display = 'flex';
-    } else {
-      separator.style.display = 'none';
-    }
-  }
+  // 智能显示/隐藏分隔线（若分隔符下没有任何可见内容，则隐藏该分隔符）
+  updateSeparatorVisibility();
   
   return hasVisibleResults;
+}
+
+// 根据过滤结果更新分隔符可见性：若分隔符之后直到下一个分隔符（或容器末尾）之间没有任何可见的节点，则隐藏该分隔符
+function updateSeparatorVisibility() {
+  const container = document.getElementById('treeContainer');
+  if (!container) return;
+  const separators = Array.from(container.querySelectorAll('.pinned-separator'));
+  const hasAnyGroupHeader = !!container.querySelector('.pinned-separator[data-separator-type="group-header"]');
+  separators.forEach(sep => {
+    const type = sep.dataset.separatorType || '';
+    if (type === 'group-tail' && !hasAnyGroupHeader) {
+      // 搜索后无任何分组可见，则隐藏末尾分隔符
+      sep.style.display = 'none';
+      return;
+    }
+    // 头部分隔符：检查后向是否有可见节点（仅同组）
+    if (type === 'group-header' || type === 'pinned-header' || type === '') {
+      const headerGroupId = sep.dataset.groupId || null;
+      let sibling = sep.nextElementSibling;
+      let hasVisible = false;
+      while (sibling) {
+        if (sibling.classList && sibling.classList.contains('pinned-separator')) break;
+        if (sibling.classList && sibling.classList.contains('tree-node') && !sibling.classList.contains('hidden')) {
+          if (type === 'group-header') {
+            const nodeGroupId = sibling.dataset && sibling.dataset.groupId;
+            if (nodeGroupId === headerGroupId) { hasVisible = true; break; }
+          } else {
+            hasVisible = true; break;
+          }
+        }
+        sibling = sibling.nextElementSibling;
+      }
+      sep.style.display = hasVisible ? 'flex' : 'none';
+    } else if (type === 'group-tail') {
+      // 尾部分隔符：检查前向是否有可见节点（仅同组）
+      const tailGroupId = sep.dataset.groupId || null;
+      let sibling = sep.previousElementSibling;
+      let hasVisible = false;
+      while (sibling) {
+        if (sibling.classList && sibling.classList.contains('pinned-separator')) break;
+        if (sibling.classList && sibling.classList.contains('tree-node') && !sibling.classList.contains('hidden')) {
+          const nodeGroupId = sibling.dataset && sibling.dataset.groupId;
+          if (nodeGroupId === tailGroupId) { hasVisible = true; break; }
+        }
+        sibling = sibling.previousElementSibling;
+      }
+      sep.style.display = hasVisible ? 'flex' : 'none';
+    }
+  });
 }
 
 // 显示节点的所有父节点
@@ -1619,11 +1688,10 @@ function showAllNodes() {
     removeHighlight(node);
   });
   
-  // 显示分隔线
-  const separator = document.querySelector('.pinned-separator');
-  if (separator) {
-    separator.style.display = 'flex';
-  }
+  // 先显示所有分隔线，再根据可见内容更新隐藏状态
+  const separators = document.querySelectorAll('.pinned-separator');
+  separators.forEach(sep => sep.style.display = 'flex');
+  updateSeparatorVisibility();
 }
 
 // 高亮匹配的文本
