@@ -473,14 +473,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true });
       } else if (request.action === 'getTabRelations') {
         // 获取当前的标签页关系缓存，如果没有值则先恢复数据
-        const tabRelations = storageManager.getTabRelations() || {};
+        const tabRelations = storageManager.getTabRelations();
         if (!tabRelations) {
           // 如果缓存为空，使用同步方法恢复数据
           const restoredRelations = await storageManager.getTabRelationsSync();
           console.log('🔄 getTabRelations returns:', Object.keys(restoredRelations).length);
-          sendResponse(restoredRelations);
+          sendResponse(restoredRelations || {});
         } else {
-          sendResponse(tabRelations);
+          sendResponse(tabRelations || {});
         }
       } else if (request.action === 'isFeatureEnabled') {
         try {
