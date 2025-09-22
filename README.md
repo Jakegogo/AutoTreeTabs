@@ -2,6 +2,9 @@
 
 一个类似 Tabs Outliner 的 Chrome 插件，能够跟踪用户点击链接并生成标签页树结构。
 
+好消息，插件已经上架到Chrome扩展商店了:
+[AutoTreeTabs](https://chromewebstore.google.com/detail/autotreetabs/lfifcpdmlbpoaflbgdmehnpkcipginaj)
+
 ## 🌟 亮点设计
 
 ### 💡 **核心创新**
