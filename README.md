@@ -21,6 +21,7 @@
 - **🏠 本地存储**: 所有数据仅存储在本地，零网络传输
 - **🛡️ 最小权限**: 仅申请必要的Chrome API权限
 - **🔐 数据隔离**: 不同设备间数据独立，保护隐私安全
+  - **🖼️ favicon 说明（v1.0.3）**: 为了提升图标稳定性，可能会请求站点的 favicon 资源用于显示与缓存（不上传用户数据）
 
 ### ⚙️ **技术优势**
 - **🚀 Manifest V3**: 采用最新Chrome扩展标准，性能和安全性更佳
@@ -373,6 +374,11 @@ ls -la icons/icon.png
 - **支持平台**: Windows, macOS, Linux
 
 ### 更新日志
+
+#### v1.0.3
+- ✅ 修复 Windows 下 `tagSuggestions` 偶发空白的问题（不再只依赖 focus 触发渲染）
+- 🖼️ 新增 favicon 缓存与异步渲染（`favicon-cache.js`），降低 403/502/CORS 导致的图标缺失与报错
+- 📦 打包脚本自动读取 `manifest.json` 版本号，生成 `auto-tree-tabs-v<version>.zip`
 
 #### v1.0 (当前版本)
 - ✅ 基本标签页树结构功能

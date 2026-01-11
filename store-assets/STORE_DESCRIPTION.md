@@ -106,6 +106,14 @@
 - GitHub Issues: https://github.com/Jakegogo/AutoTreeTabs
 - 邮箱: jakegogogo@gmail.com
 
+### 🆕 v1.0.3 简要更新
+
+- ✅ 修复 Windows 下 `tagSuggestions` 偶发空白
+- 🖼️ 新增 favicon 缓存与异步渲染，降低 403/502/CORS 导致的图标缺失与报错
+- 📦 打包脚本自动读取版本号，生成 `auto-tree-tabs-v<version>.zip`
+
+> 说明：为提升图标稳定性，扩展可能会请求站点的 favicon 资源用于显示与缓存（不上传用户数据）。
+
 让 Auto Tree Tabs 成为您高效浏览的得力助手！🚀
 
 ---
