@@ -555,7 +555,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadScriptOnce('export.js');
         window.__exportModuleLoaded = true;
       }
-      await exportTabTree();
+    await exportTabTree();
     } catch (e) {
       console.error('Failed to load export module:', e);
     }
@@ -861,7 +861,7 @@ function renderTree(tree) {
     header.appendChild(line);
     container.appendChild(header);
   }
-  
+
   // 渲染置顶标签页
   pinnedTabs.forEach((node, index, array) => {
     node.groupId = -1; // 显式标记置顶不属于任何分组，避免被聚合进分组
@@ -1010,29 +1010,6 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
     console.log('📌 Applied pinned styling to tab:', node.id, node.title);
   }
   
-  // 生成树形结构符号
-  const treeStructure = document.createElement('span');
-  treeStructure.className = 'tree-structure';
-  
-  let structureText = '';
-  
-  // 添加父级的连接线
-  for (let i = 0; i < depth; i++) {
-    if (i < parentLines.length && parentLines[i]) {
-      structureText += '  ';
-    } else {
-      structureText += '  ';
-    }
-  }
-  
-  // 添加当前节点的连接符
-  if (depth > 0) {
-    structureText += isLast ? '└─' : '├─';
-  }
-  
-  treeStructure.textContent = structureText;
-  nodeElement.appendChild(treeStructure);
-  
   // 图标
   const icon = document.createElement('div');
   icon.className = 'tree-icon';
@@ -1064,7 +1041,37 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
     icon.style.backgroundColor = '#ddd';
     icon.style.borderRadius = '2px';
   }
-  nodeElement.appendChild(icon);
+  // 图形化树形结构：用“列网格(gutter)”保证竖线始终对齐到对应层级的 icon 中心
+  const gutter = document.createElement('div');
+  gutter.className = 'tree-gutter';
+  gutter.style.setProperty('--depth', String(depth));
+  
+  // 祖先列（0..depth-2）：仅画贯穿竖线
+  for (let i = 0; i < Math.max(0, depth - 1); i++) {
+    const col = document.createElement('div');
+    col.className = 'tree-col';
+    // 显示最左侧竖线：用于更清晰的层级贯穿
+    if (i < parentLines.length && parentLines[i]) {
+      col.classList.add('has-line');
+    }
+    gutter.appendChild(col);
+  }
+  
+  // 父级分支列（depth-1）：画 “T/└” 的竖线与横线（横线连接到子节点 icon 列）
+  if (depth > 0) {
+    const junction = document.createElement('div');
+    junction.className = 'tree-col tree-junction';
+    junction.classList.add(isLast ? 'is-last' : 'is-tee');
+    gutter.appendChild(junction);
+  }
+  
+  // 当前节点 icon 列
+  const iconCol = document.createElement('div');
+  iconCol.className = 'tree-col tree-icon-col';
+  iconCol.appendChild(icon);
+  gutter.appendChild(iconCol);
+  
+  nodeElement.appendChild(gutter);
   
   // 标题
   const title = document.createElement('div');
@@ -1292,8 +1299,11 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   // 递归渲染子节点
   if (node.children && node.children.length > 0) {
     const newParentLines = [...parentLines];
-    if (depth >= 0) {
-      newParentLines[depth] = !isLast;
+    // parentLines[i] 表示“在第 i 层是否需要画贯穿竖线”
+    // 这里的 isLast 属于当前节点在其父节点的同级序列中的位置，因此应写入 (depth-1) 层
+    // 这样在更深层节点（例如第4级）不会额外多出一根“中间竖线”
+    if (depth > 0) {
+      newParentLines[depth - 1] = !isLast;
     }
     
     node.children.forEach((child, index, array) => {
@@ -1645,7 +1655,7 @@ function updateSeparatorVisibility() {
           if (type === 'group-header') {
             const nodeGroupId = sibling.dataset && sibling.dataset.groupId;
             if (nodeGroupId === headerGroupId) { hasVisible = true; break; }
-          } else {
+    } else {
             hasVisible = true; break;
           }
         }

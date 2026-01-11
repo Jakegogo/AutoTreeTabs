@@ -16,6 +16,13 @@
       --separator-badge-bg: rgba(255, 215, 0, 0.12);
       --separator-badge-color: #b8860b;
       --separator-badge-border: rgba(255, 215, 0, 0.6);
+      --tree-line-color: rgba(68, 68, 68, 0.45);
+      --tree-row-height: 26px;
+      --tree-icon-size: 16px;
+      /* 每一级缩进的宽度（保持各级竖线对齐 & 与 icon 水平居中对齐） */
+      --tree-indent-width: var(--tree-icon-size);
+      /* 连接点：图标底部（而不是行中心） */
+      --tree-join-y: calc((var(--tree-row-height) - var(--tree-icon-size)) / 2 + var(--tree-icon-size));
     }
 
     /* 深色模式 */
@@ -32,6 +39,7 @@
         --separator-badge-bg: rgba(218, 165, 32, 0.18);
         --separator-badge-color: #e6c469;
         --separator-badge-border: rgba(218, 165, 32, 0.55);
+        --tree-line-color: rgba(200, 200, 200, 0.35);
       }
     }
 
@@ -121,7 +129,7 @@
       cursor: pointer;
       border-radius: 3px;
       position: relative;
-      height: 26px;
+      height: var(--tree-row-height);
       border-left: 3px solid transparent;
       /* border-bottom: 0.5px solid var(--header-border); */
       box-sizing: border-box;
@@ -297,21 +305,72 @@
       
     }
     
-    .tree-structure {
-      font-family: Arial, "PingFangSC", "Microsoft YaHei", 微软雅黑, sans-serif;
-      color: var(--text-color);
-      opacity: 0.6;
-      white-space: pre;
-      margin-right: 4px;
+    /* 图形化树形连接线（gutter 列网格：每列中心=对应层级 icon 中心） */
+    .tree-gutter {
+      display: inline-flex;
+      align-items: center;
       flex-shrink: 0;
-      min-width: fit-content;
-      transition: color 0.3s ease, opacity 0.3s ease;
+      height: 100%;
+      margin-right: 10px; /* gutter 与标题间距（替代 tree-icon 的 margin-right） */
+    }
+
+    .tree-col {
+      position: relative;
+      width: var(--tree-indent-width);
+      height: 100%;
+      flex-shrink: 0;
+    }
+
+    /* 祖先列竖线：跨行连接到“图标底部”高度 */
+    .tree-col.has-line::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      transform: translateX(-0.5px);
+      background: var(--tree-line-color);
+    }
+
+    /* 父级分支列：竖线 + 横线（横线对齐到子节点行中线） */
+    .tree-junction::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      transform: translateX(-0.5px);
+      background: var(--tree-line-color);
+    }
+
+    .tree-junction.is-last::before {
+      /* 最后一个子节点：竖线仅到当前行中线 */
+      bottom: 50%;
+    }
+
+    .tree-junction::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: calc(var(--tree-indent-width) / 2); /* 只连接到 icon 列左侧 */
+      height: 1px;
+      transform: translateY(-0.5px);
+      background: var(--tree-line-color);
+    }
+
+    .tree-icon-col {
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     .tree-icon {
       width: 16px;
       height: 16px;
-      margin-right: 10px;
+      margin-right: 0;
       background-size: contain;
       flex-shrink: 0;
       background-repeat: no-repeat;

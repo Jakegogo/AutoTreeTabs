@@ -276,11 +276,11 @@ This action CANNOT be undone!`;
 (function initOptionsOnce() {
   if (window.__optionsInitialized) return;
   window.__optionsInitialized = true;
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      window.optionsManager = new OptionsManager();
-    });
-  } else {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
     window.optionsManager = new OptionsManager();
-  }
+  });
+} else {
+  window.optionsManager = new OptionsManager();
+}
 })();
