@@ -60,7 +60,7 @@ open test/generate-icons.html
 # 执行打包脚本
 ./package-extension.sh
 
-# 将生成 auto-tree-tabs-v1.0.0.zip
+# 将生成 auto-tree-tabs-v<manifest-version>.zip
 ```
 
 ### **Step 5: 上传并填写信息**

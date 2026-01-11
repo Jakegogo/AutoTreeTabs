@@ -7,7 +7,8 @@ echo "🚀 开始打包 Auto Tree Tabs 扩展..."
 
 # 创建临时打包目录
 TEMP_DIR="./build-temp"
-ZIP_NAME="auto-tree-tabs-v1.0.2.zip"
+VERSION="$(node -p "require('./manifest.json').version")"
+ZIP_NAME="auto-tree-tabs-v${VERSION}.zip"
 
 # 清理之前的构建
 if [ -d "$TEMP_DIR" ]; then
@@ -19,21 +20,32 @@ mkdir -p "$TEMP_DIR"
 
 echo "📂 复制扩展文件..."
 
+# 安全复制：文件不存在时不失败（避免打包中断）
+copy_if_exists() {
+  local src="$1"
+  local dst="$2"
+  if [ -f "$src" ]; then
+    cp "$src" "$dst"
+  else
+    echo "⚠️  $src 不存在，跳过"
+  fi
+}
+
 # 复制核心文件
-cp manifest.json "$TEMP_DIR/"
-cp popup.html "$TEMP_DIR/"
-cp popup.js "$TEMP_DIR/"
-cp options.html "$TEMP_DIR/"
-cp options.js "$TEMP_DIR/"
-cp background.js "$TEMP_DIR/"
-cp content.js "$TEMP_DIR/"
-cp history.js "$TEMP_DIR/"
-cp auto-organize.js "$TEMP_DIR/"
-cp export.js "$TEMP_DIR/"
-cp i18n.js "$TEMP_DIR/"
-cp popup-init.js "$TEMP_DIR/"
-cp options-init.js "$TEMP_DIR/"
-cp favicon-cache.js "$TEMP_DIR/"
+copy_if_exists manifest.json "$TEMP_DIR/"
+copy_if_exists popup.html "$TEMP_DIR/"
+copy_if_exists popup.js "$TEMP_DIR/"
+copy_if_exists options.html "$TEMP_DIR/"
+copy_if_exists options.js "$TEMP_DIR/"
+copy_if_exists background.js "$TEMP_DIR/"
+copy_if_exists content.js "$TEMP_DIR/"
+copy_if_exists history.js "$TEMP_DIR/"
+copy_if_exists auto-organize.js "$TEMP_DIR/"
+copy_if_exists export.js "$TEMP_DIR/"
+copy_if_exists i18n.js "$TEMP_DIR/"
+copy_if_exists popup-init.js "$TEMP_DIR/"
+copy_if_exists options-init.js "$TEMP_DIR/"
+copy_if_exists favicon-cache.js "$TEMP_DIR/"
 
 # 复制新增的源码文件（供 background.js 通过 importScripts 加载）
 mkdir -p "$TEMP_DIR/src/background"

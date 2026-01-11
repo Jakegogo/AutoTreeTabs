@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AutoTreeTabs",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Free yourself from chaotic tabs! Good ideas need good organization support.",
   "default_locale": "en",
   "author": "Jake",
