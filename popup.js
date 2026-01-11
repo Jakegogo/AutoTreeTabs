@@ -95,7 +95,14 @@ function detectFileType(url) {
   }
   
   // 解码URL以处理编码的字符（如中文路径）
-  const decodedUrl = decodeURIComponent(url);
+  // 注意：某些页面/本地路径可能包含非法的 "%" 编码，decodeURIComponent 会抛 URIError。
+  // 这里做容错，避免单个异常 URL 导致整棵树渲染/初始化中断（进而影响 tagSuggestions 等 UI）。
+  let decodedUrl = url;
+  try {
+    decodedUrl = decodeURIComponent(url);
+  } catch {
+    decodedUrl = url;
+  }
   const lowerUrl = decodedUrl.toLowerCase();
   
   // 遍历所有文件类型配置
@@ -674,6 +681,10 @@ async function loadTabTree() {
           console.log(`🎯 Background ready after ${attempts + 1} attempts, got ${Object.keys(tabRelations).length} relations`);
           break;
         } else {
+          // 如果发现 background 尚未就绪，尝试触发一次恢复（不受冷却时间限制）
+          if (attempts === 0) {
+            try { await chrome.runtime.sendMessage({ action: 'restoreRelations' }); } catch {}
+          }
           attempts++;
           if (attempts < maxAttempts) {
             console.log(`⏳ Background not ready yet, attempt ${attempts}/${maxAttempts}, retrying in 100ms...`);
