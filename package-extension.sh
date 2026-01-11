@@ -33,6 +33,7 @@ cp export.js "$TEMP_DIR/"
 cp i18n.js "$TEMP_DIR/"
 cp popup-init.js "$TEMP_DIR/"
 cp options-init.js "$TEMP_DIR/"
+cp favicon-cache.js "$TEMP_DIR/"
 
 # 复制新增的源码文件（供 background.js 通过 importScripts 加载）
 mkdir -p "$TEMP_DIR/src/background"

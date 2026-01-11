@@ -27,6 +27,59 @@ class OptionsManager {
     // 显示版本信息
     const manifest = chrome.runtime.getManifest();
     document.getElementById('versionInfo').textContent = manifest.version;
+
+    // 更新 favicon 缓存所需权限状态
+    await this.updateFaviconPermissionUI();
+  }
+
+  async isFaviconHostPermissionGranted() {
+    try {
+      return await chrome.permissions.contains({
+        origins: ['http://*/*', 'https://*/*']
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  async updateFaviconPermissionUI() {
+    const statusEl = document.getElementById('faviconPermissionStatus');
+    const btn = document.getElementById('grantFaviconPermissionBtn');
+    if (!statusEl || !btn) return;
+
+    const granted = await this.isFaviconHostPermissionGranted();
+    if (granted) {
+      statusEl.textContent = i18n('faviconPermissionStatusGranted') || 'Granted';
+      btn.disabled = true;
+      btn.style.opacity = '0.6';
+      btn.style.cursor = 'default';
+    } else {
+      statusEl.textContent = i18n('faviconPermissionStatusNotGranted') || 'Not granted';
+      btn.disabled = false;
+      btn.style.opacity = '';
+      btn.style.cursor = '';
+    }
+  }
+
+  async requestFaviconHostPermission() {
+    try {
+      const granted = await chrome.permissions.request({
+        origins: ['http://*/*', 'https://*/*']
+      });
+
+      if (!granted) {
+        this.showNotification(i18n('faviconPermissionDeniedToast') || 'Permission denied', 'error');
+        return false;
+      }
+
+      this.showNotification(i18n('faviconPermissionGrantedToast') || 'Permission granted', 'success');
+      return true;
+    } catch {
+      this.showNotification(i18n('faviconPermissionRequestFailedToast') || 'Permission request failed', 'error');
+      return false;
+    } finally {
+      await this.updateFaviconPermissionUI();
+    }
   }
 
   /**
@@ -128,6 +181,14 @@ class OptionsManager {
       }
       this.updateSetting('showTabGroups', enabled);
     });
+
+    // favicon 缓存 - 请求可选 host 权限
+    const faviconBtn = document.getElementById('grantFaviconPermissionBtn');
+    if (faviconBtn) {
+      faviconBtn.addEventListener('click', async () => {
+        await this.requestFaviconHostPermission();
+      });
+    }
   }
 
   /**

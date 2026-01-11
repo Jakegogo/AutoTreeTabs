@@ -28,6 +28,74 @@ function isValidFaviconUrl(url) {
 }
 
 // ===================
+// Favicon cache (popup-side module)
+// ===================
+
+function applyIconBackground(iconEl, url, source) {
+  if (!iconEl) return;
+  if (url && isValidFaviconUrl(url)) {
+    iconEl.style.backgroundImage = `url("${url}")`;
+    iconEl.style.backgroundColor = 'transparent';
+  }
+  if (source) iconEl.dataset.faviconSource = source;
+}
+
+async function hydrateIconsAfterFaviconCacheLoaded() {
+  const cache = window.FaviconCacheV1;
+  if (!cache) return;
+
+  await cache.ensureLoaded();
+
+  const nodes = document.querySelectorAll('.tree-node');
+  for (const nodeEl of nodes) {
+    const iconEl = nodeEl.querySelector('.tree-icon');
+    if (!iconEl) continue;
+    if (iconEl.dataset.faviconSource === 'filetype') continue;
+
+    const tabUrl = nodeEl.dataset.tabUrl || '';
+    const favIconUrl = nodeEl.dataset.favIconUrl || '';
+
+    const entry = await cache.getCachedEntryForPageUrl(tabUrl);
+    const hasFreshData = entry && !entry.negative && entry.dataUrl && entry.dataUrl.startsWith('data:') && ((Date.now() - (entry.ts || 0)) <= cache.TTL_MS);
+    if (hasFreshData && isValidFaviconUrl(entry.dataUrl)) {
+      applyIconBackground(iconEl, entry.dataUrl, 'storage_data');
+      continue;
+    }
+
+    // fallback to show something (may trigger network), then try to refresh cache in background (within popup lifetime)
+    if (favIconUrl && isValidFaviconUrl(favIconUrl)) {
+      applyIconBackground(iconEl, favIconUrl, 'favIconUrl');
+    } else {
+      iconEl.dataset.faviconSource = iconEl.dataset.faviconSource || 'placeholder';
+    }
+
+    // Update cache (popup-side fetch + persist)
+    iconEl.dataset.faviconSource = iconEl.dataset.faviconSource || 'requested';
+    const result = await cache.getFaviconDataUrl(tabUrl, favIconUrl || null);
+    iconEl.dataset.faviconSource = result?.source || 'unknown';
+    if (result?.dataUrl && isValidFaviconUrl(result.dataUrl) && iconEl.isConnected) {
+      applyIconBackground(iconEl, result.dataUrl, result.source || 'unknown');
+    }
+  }
+}
+
+let __faviconHydrateScheduled = false;
+function scheduleFaviconHydrate() {
+  // 关键：必须在 renderTree 把 DOM 节点 append 完之后再跑，否则 querySelectorAll('.tree-node') 为空
+  if (__faviconHydrateScheduled) return;
+  __faviconHydrateScheduled = true;
+  setTimeout(async () => {
+    __faviconHydrateScheduled = false;
+    try {
+      await hydrateIconsAfterFaviconCacheLoaded();
+    } catch (e) {
+      // 避免影响主流程：图标失败不应影响 popup 功能
+      console.warn('Favicon hydrate failed:', e);
+    }
+  }, 0);
+}
+
+// ===================
 // 文件类型检测系统
 // ===================
 
@@ -656,6 +724,8 @@ let tabGroupInfo = {};
 // 加载标签页树结构
 async function loadTabTree() {
   try {
+    // 不在这里触发 hydrate：这里时机太早，DOM 还没渲染出来
+
     // 防止频繁恢复关系
     const now = Date.now();
     if (now - lastRestoreTime > RESTORE_COOLDOWN) {
@@ -745,6 +815,8 @@ async function loadTabTree() {
     
     // 渲染树
     renderTree(tree);
+    // 渲染完成后再补图标（异步，不阻塞）
+    scheduleFaviconHydrate();
 
   } catch (error) {
     console.error('Error loading tab tree:', error);
@@ -956,6 +1028,8 @@ function renderTree(tree) {
 
   // 渲染完成后更新一次分隔符可见性，避免初始状态异常
   updateSeparatorVisibility();
+  // 渲染完成后再异步补图标（避免 loadTabTree 中过早运行导致找不到节点）
+  scheduleFaviconHydrate();
 }
 
 // 从DOM中移除指定的标签页元素
@@ -999,6 +1073,7 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   nodeElement.className = 'tree-node';
   nodeElement.dataset.tabId = node.id;
   nodeElement.dataset.tabUrl = node.url || '';
+  nodeElement.dataset.favIconUrl = node.favIconUrl || '';
   nodeElement.dataset.groupId = (typeof node.groupId === 'number' && node.groupId >= 0) ? String(node.groupId) : '-1';
   
   // 检查是否是当前标签页
@@ -1024,6 +1099,8 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   // 图标
   const icon = document.createElement('div');
   icon.className = 'tree-icon';
+  // 默认先写一个 source，方便在 DevTools 里确认是否“走到了哪条路径”
+  icon.dataset.faviconSource = 'init';
   
   // 检查是否为特殊文件类型
   const fileType = detectFileType(node.url);
@@ -1044,13 +1121,12 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
       icon.title = i18n(config.title);
       console.log(`🎯 ${fileType.toUpperCase()} icon loaded:`, iconUrl);
     }
-  } else if (node.favIconUrl && isValidFaviconUrl(node.favIconUrl)) {
-    // 检查favIconUrl是否有效且安全
-    icon.style.backgroundImage = `url(${node.favIconUrl})`;
+    icon.dataset.faviconSource = 'filetype';
   } else {
-    // 使用默认图标
-    icon.style.backgroundColor = '#ddd';
-    icon.style.borderRadius = '2px';
+    // 首屏：先不设置 background-image（避免任何远程请求），等待异步 hydrate
+    icon.style.backgroundImage = '';
+    icon.style.backgroundColor = 'transparent';
+    icon.dataset.faviconSource = 'pending';
   }
   // 图形化树形结构：用“列网格(gutter)”保证竖线始终对齐到对应层级的 icon 中心
   const gutter = document.createElement('div');

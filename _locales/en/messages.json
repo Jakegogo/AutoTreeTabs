@@ -441,6 +441,46 @@
     "message": "Display browser tab groups and separators in the popup (requires permission)",
     "description": "Setting description: show tab groups"
   },
+  "faviconPermissionTitle": {
+    "message": "Favicon Cache (Recommended)",
+    "description": "Setting: enable favicon download/cache (requires optional host permission)"
+  },
+  "faviconPermissionDesc": {
+    "message": "Download and cache favicons for more stable icons (requires optional permission).",
+    "description": "Setting description: favicon cache"
+  },
+  "faviconPermissionStatusLabel": {
+    "message": "Status:",
+    "description": "Label for favicon permission status"
+  },
+  "faviconPermissionStatusUnknown": {
+    "message": "Checking…",
+    "description": "Favicon permission status: unknown"
+  },
+  "faviconPermissionStatusGranted": {
+    "message": "Granted",
+    "description": "Favicon permission status: granted"
+  },
+  "faviconPermissionStatusNotGranted": {
+    "message": "Not granted",
+    "description": "Favicon permission status: not granted"
+  },
+  "faviconPermissionGrantBtn": {
+    "message": "Enable",
+    "description": "Button: request favicon host permission"
+  },
+  "faviconPermissionGrantedToast": {
+    "message": "Permission granted",
+    "description": "Toast after permission granted"
+  },
+  "faviconPermissionDeniedToast": {
+    "message": "Permission denied",
+    "description": "Toast after permission denied"
+  },
+  "faviconPermissionRequestFailedToast": {
+    "message": "Permission request failed",
+    "description": "Toast after permission request error"
+  },
   "tabGroup": {
     "message": "Group",
     "description": "Default tab group name"

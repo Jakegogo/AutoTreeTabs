@@ -442,6 +442,46 @@
     "message": "在彈出頁顯示瀏覽器的標籤頁分組及分隔符（需要權限）",
     "description": "設定說明：顯示標籤頁分組"
   },
+  "faviconPermissionTitle": {
+    "message": "網站圖示快取（推薦）",
+    "description": "設定：啟用網站圖示下載/快取（需要可選 host 權限）"
+  },
+  "faviconPermissionDesc": {
+    "message": "下載並快取網站圖示，以獲得更穩定的圖示顯示（需要可選權限）。",
+    "description": "設定說明：網站圖示快取"
+  },
+  "faviconPermissionStatusLabel": {
+    "message": "狀態：",
+    "description": "網站圖示權限狀態標籤"
+  },
+  "faviconPermissionStatusUnknown": {
+    "message": "檢查中…",
+    "description": "網站圖示權限狀態：未知"
+  },
+  "faviconPermissionStatusGranted": {
+    "message": "已授權",
+    "description": "網站圖示權限狀態：已授權"
+  },
+  "faviconPermissionStatusNotGranted": {
+    "message": "未授權",
+    "description": "網站圖示權限狀態：未授權"
+  },
+  "faviconPermissionGrantBtn": {
+    "message": "啟用",
+    "description": "按鈕：申請網站圖示 host 權限"
+  },
+  "faviconPermissionGrantedToast": {
+    "message": "權限已授權",
+    "description": "授權成功提示"
+  },
+  "faviconPermissionDeniedToast": {
+    "message": "權限被拒絕",
+    "description": "授權被拒提示"
+  },
+  "faviconPermissionRequestFailedToast": {
+    "message": "申請權限失敗",
+    "description": "申請權限出錯提示"
+  },
   "tabGroup": {
     "message": "分組",
     "description": "標籤頁分組預設名稱"

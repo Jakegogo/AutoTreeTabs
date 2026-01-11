@@ -441,6 +441,46 @@
     "message": "在弹窗显示浏览器的标签页分组及分隔符（需要权限）",
     "description": "设置项说明：显示标签页分组"
   },
+  "faviconPermissionTitle": {
+    "message": "网站图标缓存（推荐）",
+    "description": "设置：启用网站图标下载/缓存（需要可选 host 权限）"
+  },
+  "faviconPermissionDesc": {
+    "message": "下载并缓存网站图标，以获得更稳定的图标显示（需要可选权限）。",
+    "description": "设置说明：网站图标缓存"
+  },
+  "faviconPermissionStatusLabel": {
+    "message": "状态：",
+    "description": "网站图标权限状态标签"
+  },
+  "faviconPermissionStatusUnknown": {
+    "message": "检测中…",
+    "description": "网站图标权限状态：未知"
+  },
+  "faviconPermissionStatusGranted": {
+    "message": "已授权",
+    "description": "网站图标权限状态：已授权"
+  },
+  "faviconPermissionStatusNotGranted": {
+    "message": "未授权",
+    "description": "网站图标权限状态：未授权"
+  },
+  "faviconPermissionGrantBtn": {
+    "message": "启用",
+    "description": "按钮：申请网站图标 host 权限"
+  },
+  "faviconPermissionGrantedToast": {
+    "message": "权限已授权",
+    "description": "授权成功提示"
+  },
+  "faviconPermissionDeniedToast": {
+    "message": "权限被拒绝",
+    "description": "授权被拒提示"
+  },
+  "faviconPermissionRequestFailedToast": {
+    "message": "申请权限失败",
+    "description": "申请权限出错提示"
+  },
   "tabGroup": {
     "message": "分组",
     "description": "标签页分组默认名称"

@@ -442,6 +442,46 @@
     "message": "ポップアップでブラウザのタブグループと区切り線を表示（権限が必要）",
     "description": "設定説明：タブグループ表示"
   },
+  "faviconPermissionTitle": {
+    "message": "ファビコンキャッシュ（推奨）",
+    "description": "設定：ファビコンのダウンロード/キャッシュを有効化（任意の host 権限が必要）"
+  },
+  "faviconPermissionDesc": {
+    "message": "ファビコンをダウンロードしてキャッシュし、より安定したアイコン表示にします（任意の権限が必要）。",
+    "description": "設定説明：ファビコンキャッシュ"
+  },
+  "faviconPermissionStatusLabel": {
+    "message": "状態：",
+    "description": "ファビコン権限状態ラベル"
+  },
+  "faviconPermissionStatusUnknown": {
+    "message": "確認中…",
+    "description": "ファビコン権限状態：不明"
+  },
+  "faviconPermissionStatusGranted": {
+    "message": "許可済み",
+    "description": "ファビコン権限状態：許可済み"
+  },
+  "faviconPermissionStatusNotGranted": {
+    "message": "未許可",
+    "description": "ファビコン権限状態：未許可"
+  },
+  "faviconPermissionGrantBtn": {
+    "message": "有効にする",
+    "description": "ボタン：ファビコン用 host 権限を要求"
+  },
+  "faviconPermissionGrantedToast": {
+    "message": "権限が許可されました",
+    "description": "権限許可後のトースト"
+  },
+  "faviconPermissionDeniedToast": {
+    "message": "権限が拒否されました",
+    "description": "権限拒否後のトースト"
+  },
+  "faviconPermissionRequestFailedToast": {
+    "message": "権限の要求に失敗しました",
+    "description": "権限要求エラー時のトースト"
+  },
   "tabGroup": {
     "message": "グループ",
     "description": "タブグループのデフォルト名"

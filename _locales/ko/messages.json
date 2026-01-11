@@ -442,6 +442,46 @@
     "message": "팝업에서 브라우저의 탭 그룹과 구분선을 표시합니다 (권한 필요)",
     "description": "설명: 탭 그룹 표시"
   },
+  "faviconPermissionTitle": {
+    "message": "파비콘 캐시(권장)",
+    "description": "설정: 파비콘 다운로드/캐시 활성화(선택 host 권한 필요)"
+  },
+  "faviconPermissionDesc": {
+    "message": "파비콘을 다운로드하고 캐시하여 더 안정적으로 아이콘을 표시합니다(선택 권한 필요).",
+    "description": "설정 설명: 파비콘 캐시"
+  },
+  "faviconPermissionStatusLabel": {
+    "message": "상태:",
+    "description": "파비콘 권한 상태 라벨"
+  },
+  "faviconPermissionStatusUnknown": {
+    "message": "확인 중…",
+    "description": "파비콘 권한 상태: 알 수 없음"
+  },
+  "faviconPermissionStatusGranted": {
+    "message": "허용됨",
+    "description": "파비콘 권한 상태: 허용됨"
+  },
+  "faviconPermissionStatusNotGranted": {
+    "message": "허용되지 않음",
+    "description": "파비콘 권한 상태: 허용되지 않음"
+  },
+  "faviconPermissionGrantBtn": {
+    "message": "활성화",
+    "description": "버튼: 파비콘용 host 권한 요청"
+  },
+  "faviconPermissionGrantedToast": {
+    "message": "권한이 허용되었습니다",
+    "description": "권한 허용 토스트"
+  },
+  "faviconPermissionDeniedToast": {
+    "message": "권한이 거부되었습니다",
+    "description": "권한 거부 토스트"
+  },
+  "faviconPermissionRequestFailedToast": {
+    "message": "권한 요청에 실패했습니다",
+    "description": "권한 요청 실패 토스트"
+  },
   "tabGroup": {
     "message": "그룹",
     "description": "탭 그룹 기본 이름"
