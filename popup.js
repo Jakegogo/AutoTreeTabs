@@ -680,6 +680,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderTagSuggestions();
     });
 
+    // Windows 下经常出现：初始化阶段程序先 focus 了输入框，但此时 focus 监听还没绑定，
+    // 导致第一次不会触发渲染，tagSuggestions 为空。
+    // 这里补一个 click/mousedown 触发，并在绑定完成后主动渲染一次，保证稳定显示。
+    const ensureTagSuggestions = () => {
+      try { renderTagSuggestions(); } catch {}
+    };
+    searchInput.addEventListener('mousedown', ensureTagSuggestions);
+    searchInput.addEventListener('click', ensureTagSuggestions);
+    ensureTagSuggestions();
+
     // 回车保存历史
     searchInput.addEventListener('keydown', async (e) => {
       if (e.key === 'Enter') {
