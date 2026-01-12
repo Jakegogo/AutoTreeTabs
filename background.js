@@ -109,9 +109,9 @@ class TabTreePersistentStorage {
         return {};
       }
       
-      // 检查是否已经有标签页关系数据，如果有则不进行恢复
+      // 检查是否已经有标签页关系数据，如果缓存已初始化（即使为空对象）则不进行恢复
       const existingRelations = storageManager.getTabRelations();
-      if (existingRelations) {
+      if (existingRelations != null) {
         console.log('🚫 Tab relations already exist, skipping restore. Existing relations:', Object.keys(existingRelations).length);
         return existingRelations;
       }
@@ -226,9 +226,38 @@ let pluginClosedTabs = new Set();
 
 
 
+// 记录 tabId -> 最近一次已知 URL（因为 tabs.onRemoved 触发时 tab 已不可查询）
+const tabLastKnownUrlById = new Map();
+
+function recordTabUrl(tabId, url) {
+  if (typeof url !== 'string' || url.trim() === '') return;
+  tabLastKnownUrlById.set(tabId, url);
+}
+
+function isGoogleOAuthUrl(url) {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    return u.hostname === 'accounts.google.com' && u.pathname.startsWith('/signin/oauth');
+  } catch {
+    return false;
+  }
+}
+
+async function isPopupWindow(windowId) {
+  try {
+    const win = await chrome.windows.get(windowId);
+    return win?.type === 'popup';
+  } catch {
+    // window 可能已不存在/正在关闭，保守返回 false
+    return false;
+  }
+}
+
 // 监听标签页创建事件 - 优先使用 openerTabId + 持久化记录
 chrome.tabs.onCreated.addListener(async (tab) => {
   console.log('Tab created:', tab.id, 'openerTabId:', tab.openerTabId, 'url:', tab.url);
+  recordTabUrl(tab.id, tab.url || tab.pendingUrl || '');
   
   try {
     // 如果检测到窗口恢复，跳过自动父子关系设置
@@ -281,6 +310,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   // 只处理URL更新且不在窗口恢复过程中
   if (changeInfo.url && !isWindowRestoring) {
     console.log('Tab URL updated:', tabId, 'new URL:', changeInfo.url);
+    recordTabUrl(tabId, changeInfo.url);
     
     try {
       // 1. 处理原生的 openerTabId 关系（与 setTabParent 中的逻辑形成互补）
@@ -364,6 +394,18 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
       // 不需要在这里清理置顶状态，因为基于URL的存储会在下次访问时自动清理
       return;
     }
+
+    // ✅ OAuth 登录弹窗（popup window）关闭：应回到上一个标签页（浏览器默认行为）
+    // 不应触发 AutoBackTrack 的 sibling 跳转。
+    const lastKnownUrl = tabLastKnownUrlById.get(tabId);
+    const shouldSkipSmartSwitch = isGoogleOAuthUrl(lastKnownUrl) && await isPopupWindow(removeInfo.windowId);
+    if (shouldSkipSmartSwitch) {
+      console.log(`🔐 OAuth popup tab ${tabId} closed, skipping smart switch. url=`, lastKnownUrl);
+      await removeTabRelations(tabId);
+      await cleanupScrollPositionForTab(tabId);
+      tabIndexSnapshot.delete(tabId);
+      return;
+    }
     
     console.log(`Tab ${tabId} was closed by user, checking settings...`);
     
@@ -402,6 +444,8 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
     tabIndexSnapshot.delete(tabId);
   } catch (error) {
     console.error('Error handling tab removal:', error);
+  } finally {
+    tabLastKnownUrlById.delete(tabId);
   }
   // 刷新快照
   updateTabSnapshot();
@@ -726,14 +770,17 @@ let isWindowRestoring = false;
 
 // 监听窗口关闭事件 - 清除内存中的标签关系
 chrome.windows.onRemoved.addListener(async (windowId) => {
-  console.log('🗑️ Window closed:', windowId, 'clearing all tabRelations');
-  
   try {
-    // 完全清除内存中的标签关系，依赖持久化存储恢复
-    storageManager.removeTabRelations();
-    console.log('✅ All tabRelations cleared on window close');
-    storageManager.clearGlobalTabHistory();
-    console.log('✅ Global tab history cleared on window close');
+    // 只在“所有 normal window 都关闭”时才清空内存缓存。
+    // 否则（例如 OAuth popup window 关闭）不应影响其他正常窗口的树关系与历史。
+    const normalWindows = await chrome.windows.getAll({ windowTypes: ['normal'] });
+    if (!normalWindows || normalWindows.length === 0) {
+      console.log('🗑️ All normal windows closed, clearing tabRelations + global history');
+      storageManager.removeTabRelations();
+      storageManager.clearGlobalTabHistory();
+    } else {
+      console.log('🪟 Window closed:', windowId, 'but normal windows remain, keeping tabRelations + global history');
+    }
   } catch (error) {
     console.error('Error clearing tabRelations on window close:', error);
   }

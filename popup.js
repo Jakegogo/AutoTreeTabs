@@ -31,13 +31,46 @@ function isValidFaviconUrl(url) {
 // Favicon cache (popup-side module)
 // ===================
 
-function applyIconBackground(iconEl, url, source) {
+function setIconPlaceholder(iconEl, enabled) {
   if (!iconEl) return;
-  if (url && isValidFaviconUrl(url)) {
-    iconEl.style.backgroundImage = `url("${url}")`;
-    iconEl.style.backgroundColor = 'transparent';
+  if (enabled) {
+    iconEl.classList.add('icon-placeholder');
+    // 重要：不要用 inline backgroundColor 覆盖占位样式（inline 优先级最高）
+    iconEl.style.backgroundColor = '';
+  } else {
+    iconEl.classList.remove('icon-placeholder');
   }
+}
+
+function applyIconBackground(iconEl, url, source, bgColor = 'transparent') {
+  if (!iconEl) return;
   if (source) iconEl.dataset.faviconSource = source;
+
+  // 未提供/非法 URL：保持占位
+  if (!url || !isValidFaviconUrl(url)) {
+    setIconPlaceholder(iconEl, true);
+    iconEl.style.backgroundImage = '';
+    return;
+  }
+
+  // 先展示占位（圆角矩形），待图片真正加载成功后再取消圆角/背景
+  setIconPlaceholder(iconEl, true);
+
+  const img = new Image();
+  img.onload = () => {
+    // 若 DOM 已被移除则跳过
+    if (!iconEl.isConnected) return;
+    iconEl.style.backgroundImage = `url("${url}")`;
+    iconEl.style.backgroundColor = bgColor || 'transparent';
+    setIconPlaceholder(iconEl, false);
+  };
+  img.onerror = () => {
+    // 加载失败：保留占位
+    if (!iconEl.isConnected) return;
+    iconEl.style.backgroundImage = '';
+    setIconPlaceholder(iconEl, true);
+  };
+  img.src = url;
 }
 
 async function hydrateIconsAfterFaviconCacheLoaded() {
@@ -67,6 +100,8 @@ async function hydrateIconsAfterFaviconCacheLoaded() {
       applyIconBackground(iconEl, favIconUrl, 'favIconUrl');
     } else {
       iconEl.dataset.faviconSource = iconEl.dataset.faviconSource || 'placeholder';
+      // 保持占位背景
+      iconEl.classList.add('icon-placeholder');
     }
 
     // Update cache (popup-side fetch + persist)
@@ -1111,6 +1146,8 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
   icon.className = 'tree-icon';
   // 默认先写一个 source，方便在 DevTools 里确认是否“走到了哪条路径”
   icon.dataset.faviconSource = 'init';
+  // 初始占位：未加载/失败显示圆角矩形背景
+  icon.classList.add('icon-placeholder');
   
   // 检查是否为特殊文件类型
   const fileType = detectFileType(node.url);
@@ -1119,9 +1156,10 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
     if (config) {
       // 使用对应的文件类型图标
       const iconUrl = chrome.runtime.getURL(config.icon);
-      
-      icon.style.backgroundImage = `url("${iconUrl}")`;
-      icon.style.backgroundColor = config.bgColor || 'transparent';
+
+      // 等图标真正加载成功后再取消占位圆角背景
+      applyIconBackground(icon, iconUrl, 'filetype', config.bgColor || 'transparent');
+
       icon.style.backgroundSize = 'contain';
       icon.style.backgroundRepeat = 'no-repeat';
       icon.style.backgroundPosition = 'center';
@@ -1129,13 +1167,13 @@ function renderNode(node, container, depth, parentLines = [], isLast = false) {
       icon.style.height = '16px';
       icon.innerHTML = ''; // 清除任何文本内容
       icon.title = i18n(config.title);
-      console.log(`🎯 ${fileType.toUpperCase()} icon loaded:`, iconUrl);
     }
     icon.dataset.faviconSource = 'filetype';
   } else {
     // 首屏：先不设置 background-image（避免任何远程请求），等待异步 hydrate
     icon.style.backgroundImage = '';
-    icon.style.backgroundColor = 'transparent';
+    // 让占位样式生效（不要设置 inline backgroundColor）
+    icon.style.backgroundColor = '';
     icon.dataset.faviconSource = 'pending';
   }
   // 图形化树形结构：用“列网格(gutter)”保证竖线始终对齐到对应层级的 icon 中心

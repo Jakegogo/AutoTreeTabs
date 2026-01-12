@@ -376,6 +376,12 @@
       background-repeat: no-repeat;
       background-position: center;
     }
+
+    /* 图标占位：在 favicon 尚未加载完成或加载失败时显示圆角矩形背景 */
+    .tree-icon.icon-placeholder {
+      background-color: #ddd;
+      border-radius: 4px;
+    }
     
     .tree-title {
       flex-grow: 1;
@@ -820,7 +826,7 @@
     }
 
     .chips-layer .tag-chip {
-      background: #e8f0fe;
+      background: var(--selected-bg);
       border: 1px solid var(--border-color);
       height: 18px;
       line-height: 18px;
@@ -892,7 +898,7 @@
     }
 
     .tag-chip:hover { opacity: 0.9; }
-    .tag-chip.active { background: #e3f2fd; }
+    .tag-chip.active { background: var(--selected-bg); }
 
     .tag-chip .remove {
       font-weight: 600;

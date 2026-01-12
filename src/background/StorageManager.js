@@ -65,7 +65,9 @@ class StorageManager {
 
     // 从tabRelations移除数据（仅清空内存缓存）
     removeTabRelations() {
-        this.tabRelationsCache = {};
+        // 用 null 表示“缓存未初始化/需要从持久化存储恢复”，
+        // 避免空对象 {} 被误判为“已有关系”从而跳过 restore。
+        this.tabRelationsCache = null;
         // 不再调度写入，仅清空内存缓存
     }
 
