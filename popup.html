@@ -910,7 +910,11 @@
   <div class="main-container">
     <div class="header">
       <div class="header-title">
-        <img class="ext-icon" src="assets/icons/colorful-icon64.png" alt="">
+        <!-- <img class="ext-icon" src="assets/icons/colorful-icon64.png" alt=""> -->
+        <picture>
+          <source srcset="assets/icons/colorful-icon64-black.png" media="(prefers-color-scheme: dark)">
+          <img class="ext-icon" src="assets/icons/colorful-icon64-white.png" alt="">
+        </picture>
         <h5 style="margin: 0; font-size: 16px; font-weight: 600;" data-i18n="tabTreeTitle">Tab Tree</h5>
       </div>
       <div class="header-buttons">
