@@ -1,12 +1,12 @@
 // 后台服务脚本 - 处理标签页创建和关系跟踪
 // 基于 URL 的持久化系统，解决 tabId 和 openerTabId 重启后变化的问题
 
-importScripts('src/background/PinnedTabPersistentStorage.js');
-importScripts('src/background/DelayedMergeExecutor.js');
-importScripts('src/background/SettingsCache.js');
-importScripts('src/background/StorageManager.js');
-importScripts('src/background/tools.js');
-importScripts('src/background/AutoBackTrack.js');
+importScripts('PinnedTabPersistentStorage.js');
+importScripts('DelayedMergeExecutor.js');
+importScripts('SettingsCache.js');
+importScripts('StorageManager.js');
+importScripts('tools.js');
+importScripts('AutoBackTrack.js');
 
 
 // URL-based 标签页树持久化系统 (学习自 Tabs Outliner)

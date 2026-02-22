@@ -4,12 +4,16 @@
   "description": "一个类似 Tabs Outliner 的 Chrome 插件，能够跟踪用户点击链接并生成标签页树结构。",
   "main": "background.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "esbuild src/popup/popup-main.js --bundle --format=iife --sourcemap --outfile=src/popup/popup.js",
+    "build:prod": "esbuild src/popup/popup-main.js --bundle --format=iife --minify --outfile=src/popup/popup.js",
+    "watch": "esbuild src/popup/popup-main.js --bundle --format=iife --sourcemap --outfile=src/popup/popup.js --watch"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/chrome": "^0.1.4"
+    "@types/chrome": "^0.1.4",
+    "esbuild": "^0.27.3"
   }
 }

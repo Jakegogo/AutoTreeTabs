@@ -11,7 +11,7 @@ async function injectContentScript(tabId) {
       // 注入content script
       await chrome.scripting.executeScript({
         target: { tabId: tabId },
-        files: ['content.js']
+        files: ['src/content/content.js']
       });
 
       // 标记已注入

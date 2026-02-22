@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc:*)",
+      "Bash(du:*)",
+      "Bash(git mv:*)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File package-extension.ps1)",
+      "Bash(printf:*)",
+      "Bash(unzip:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File package-extension.ps1)",
+      "Bash(powershell -Command:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File package-extension.ps1:*)"
+    ]
+  }
+}
