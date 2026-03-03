@@ -314,7 +314,9 @@ export async function performSearch(searchTerm) {
     length: state.currentSearchTerm.length
   });
 
-  if ((state.selectedFilters.recent) && !state.isRefreshingByRecent) {
+  if ((state.selectedFilters.recent || 
+      state.selectedFilters.recent != state.selectedFilters.lastRecent) 
+      && !state.isRefreshingByRecent) {
     try {
       state.isRefreshingByRecent = true;
       await loadTabTree();

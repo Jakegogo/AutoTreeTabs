@@ -1,5 +1,5 @@
 // Storage管理器 - 简化版本
-class StorageManager {
+export class StorageManager {
     constructor() {
         this.persistentTreeCache = null;
         this.tabRelationsCache = null; // 仅内存缓存，不持久化
@@ -14,6 +14,15 @@ class StorageManager {
         this.WRITE_INTERVAL = 5000; // 5秒写入间隔
         this.maxHistorySize = 30; // 全局历史记录大小限制
         this.defaultRecentFilter = undefined; // 最近筛选默认偏好（内存缓存）
+        // 通过 init() 晚绑定，避免与 persistentStorage/pinnedTabStorage 的循环依赖
+        this._persistentStorage = null;
+        this._pinnedTabStorage = null;
+    }
+
+    // 晚绑定：在 instances.js 中创建所有实例后调用
+    init(persistentStorage, pinnedTabStorage) {
+        this._persistentStorage = persistentStorage;
+        this._pinnedTabStorage = pinnedTabStorage;
     }
 
     // 获取persistentTree
@@ -47,7 +56,7 @@ class StorageManager {
         // 如果缓存为空，先从持久化存储恢复关系
         if (!this.tabRelationsCache) {
             console.log('📦 Cache is empty, restoring relations from persistent storage...');
-            await persistentStorage.restoreRelations();
+            await this._persistentStorage.restoreRelations();
             if (!this.tabRelationsCache) {
                 console.log('❌ Tab relations cache is still null after restore');
             } else {
@@ -153,7 +162,7 @@ class StorageManager {
     // 获取 pinnedTabIdsCache，如果不存在则构建
     async getPinnedTabIdsCache() {
         if (!this.pinnedTabIdsCache) {
-            this.pinnedTabIdsCache = await pinnedTabStorage.buildPinnedTabIdsCache();
+            this.pinnedTabIdsCache = await this._pinnedTabStorage.buildPinnedTabIdsCache();
             console.log(`🔄 Rebuilt pinnedTabIdsCache: ${Object.keys(this.pinnedTabIdsCache).length} tabs`);
         }
         return this.pinnedTabIdsCache;

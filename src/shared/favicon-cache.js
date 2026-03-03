@@ -134,6 +134,16 @@
     return `data:${contentType};base64,${base64}`;
   }
 
+  // 检查扩展是否拥有该 URL 的 host permission
+  // 有 host permission 时 Chrome 自动绕过 CORS，fetch 不会被拦截
+  async function hasHostPermission(url) {
+    try {
+      return await chrome.permissions.contains({ origins: [new URL(url).origin + '/*'] });
+    } catch {
+      return false;
+    }
+  }
+
   async function getFaviconDataUrl(pageUrl, iconUrlHint = null) {
     await ensureLoaded();
     const origin = getOriginKey(pageUrl);
@@ -151,46 +161,49 @@
 
     // 1) prefer hint (tab.favIconUrl)
     if (iconUrlHint) {
-      try {
-        const hintedDataUrl = await fetchIconAsDataUrl(iconUrlHint);
-        mem.set(origin, { dataUrl: hintedDataUrl, ts: now(), lastAccess: now(), negative: false });
-        await persist();
-        return { dataUrl: hintedDataUrl, source: 'hint_network' };
-      } catch (e) {
-        const msg = (e && typeof e.message === 'string') ? e.message : '';
-        const isCorsLike = (e instanceof TypeError) || /CORS|Failed to fetch/i.test(msg);
-        if (isCorsLike) {
-          const hintedUrl = sanitizeHttpUrl(iconUrlHint);
-          if (hintedUrl) {
-            mem.set(origin, { dataUrl: hintedUrl, ts: now(), lastAccess: now(), negative: false });
+      const hintedUrl = sanitizeHttpUrl(iconUrlHint);
+      if (hintedUrl) {
+        if (await hasHostPermission(hintedUrl)) {
+          // 有 host permission → 直接 fetch，Chrome 会绕过 CORS
+          try {
+            const hintedDataUrl = await fetchIconAsDataUrl(hintedUrl);
+            mem.set(origin, { dataUrl: hintedDataUrl, ts: now(), lastAccess: now(), negative: false });
             await persist();
-            return { dataUrl: hintedUrl, source: 'hint_url_fallback' };
+            return { dataUrl: hintedDataUrl, source: 'hint_network' };
+          } catch {
+            // 有权限但 fetch 仍失败（网络错误、404 等），继续尝试 /favicon.ico
           }
+        } else {
+          // 无 host permission → 直接使用 URL（img src 不触发 CORS）
+          mem.set(origin, { dataUrl: hintedUrl, ts: now(), lastAccess: now(), negative: false });
+          await persist();
+          return { dataUrl: hintedUrl, source: 'hint_url_fallback' };
         }
-        // continue fallback below
       }
     }
 
     // 2) fallback: /favicon.ico
-    try {
-      const dataUrl = await fetchIconAsDataUrl(`${origin}/favicon.ico`);
-      mem.set(origin, { dataUrl, ts: now(), lastAccess: now(), negative: false });
-      await persist();
-      return { dataUrl, source: 'network' };
-    } catch (e) {
-      const msg = (e && typeof e.message === 'string') ? e.message : '';
-      const isCorsLike = (e instanceof TypeError) || /CORS|Failed to fetch/i.test(msg);
-      if (isCorsLike) {
-        const urlFallback = `${origin}/favicon.ico`;
-        mem.set(origin, { dataUrl: urlFallback, ts: now(), lastAccess: now(), negative: false });
+    const faviconUrl = `${origin}/favicon.ico`;
+    if (await hasHostPermission(faviconUrl)) {
+      // 有 host permission → 直接 fetch，Chrome 会绕过 CORS
+      try {
+        const dataUrl = await fetchIconAsDataUrl(faviconUrl);
+        mem.set(origin, { dataUrl, ts: now(), lastAccess: now(), negative: false });
         await persist();
-        return { dataUrl: urlFallback, source: 'url_fallback' };
+        return { dataUrl, source: 'network' };
+      } catch {
+        // 有权限但 fetch 失败（网络错误、404 等）→ 标记为 negative
       }
-
-      mem.set(origin, { dataUrl: null, ts: now(), lastAccess: now(), negative: true });
+    } else {
+      // 无 host permission → 直接使用 URL（img src 不触发 CORS）
+      mem.set(origin, { dataUrl: faviconUrl, ts: now(), lastAccess: now(), negative: false });
       await persist();
-      return { dataUrl: null, source: 'network_failed' };
+      return { dataUrl: faviconUrl, source: 'url_fallback' };
     }
+
+    mem.set(origin, { dataUrl: null, ts: now(), lastAccess: now(), negative: true });
+    await persist();
+    return { dataUrl: null, source: 'network_failed' };
   }
 
   async function getCachedEntryForPageUrl(pageUrl) {

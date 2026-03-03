@@ -113,6 +113,15 @@ export async function closeSelectedOrCurrent(node) {
   }
 }
 
+// 移动标签页到新窗口
+export async function moveTabToNewWindow(tabId) {
+  try {
+    await chrome.windows.create({ tabId });
+  } catch (error) {
+    console.error('Error moving tab to new window:', error);
+  }
+}
+
 // 关闭标签页及其所有子节点
 export async function closeTabAndChildren(node) {
   const tabsToClose = [];

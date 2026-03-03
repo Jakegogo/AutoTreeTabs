@@ -576,12 +576,10 @@
       background: #ff9800;
     }
     
-    /* 置顶图标缩放，降低视觉高度 */
     .pin-icon {
-      display: inline-block;
-      /* transform: scaleY(0.8); */
-      transform-origin: center;
-      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     .pin-btn-overlay {
@@ -605,35 +603,55 @@
     }
     
     .export-btn {
-      background: #a842bb;
-      color: white;
+      width: 28px;
+      height: 28px;
+      padding: 0;
       border: none;
-      padding: 6px 12px;
       border-radius: 5px;
+      background: transparent;
+      color: #888;
       cursor: pointer;
-      font-size: 11px;
-      transition: background-color 0.2s ease, transform 0.1s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
     }
-    
+
     .export-btn:hover {
-      background: #7c26a0;
-      transform: translateY(-1px);
+      background: rgba(168, 66, 187, 0.12);
+      color: #a842bb;
+      transform: translateY(-0.5px);
     }
-    
+
+    .export-btn:active {
+      transform: translateY(0);
+      background: rgba(168, 66, 187, 0.22);
+    }
+
     .organize-btn {
-      background: #40a3dc; /* RAL 250 50 35 approx */
-      color: white;
+      width: 28px;
+      height: 28px;
+      padding: 0;
       border: none;
-      padding: 6px 12px;
       border-radius: 5px;
+      background: transparent;
+      color: #888;
       cursor: pointer;
-      font-size: 11px;
-      transition: background-color 0.2s ease, transform 0.1s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
     }
-    
+
     .organize-btn:hover {
-      background: #258cbc;
-      transform: translateY(-1px);
+      background: rgba(64, 163, 220, 0.12);
+      color: #40a3dc;
+      transform: translateY(-0.5px);
+    }
+
+    .organize-btn:active {
+      transform: translateY(0);
+      background: rgba(64, 163, 220, 0.22);
     }
     
     /* 导航按钮样式 */
@@ -683,11 +701,11 @@
       }
       
       .tree-node.unloaded .tree-title {
-        opacity: 0.9;
+        opacity: 1.0;
       }
       
       .tree-node.unloaded .tree-icon {
-        opacity: 0.6;
+        opacity: 0.3;
         filter: grayscale(70%);
       }
       
@@ -697,7 +715,7 @@
       }
       
       .tree-node.unloaded:hover .tree-icon {
-        opacity: 1;
+        opacity: 0.9;
         filter: grayscale(0%);
       }
       
@@ -904,6 +922,87 @@
       font-weight: 600;
       opacity: 0.7;
     }
+
+    /* 窗口分隔线（蓝色，区别于置顶的金色） */
+    .pinned-separator[data-separator-type="window-header"] .separator-label {
+      color: #1565c0;
+      background: rgba(21, 101, 192, 0.08);
+      border-color: rgba(21, 101, 192, 0.35);
+    }
+    .pinned-separator[data-separator-type="window-header"] .separator-line {
+      background: linear-gradient(
+        to right,
+        transparent,
+        rgba(21, 101, 192, 0.25) 20%,
+        rgba(21, 101, 192, 0.5) 50%,
+        rgba(21, 101, 192, 0.25) 80%,
+        transparent
+      );
+    }
+    @media (prefers-color-scheme: dark) {
+      .pinned-separator[data-separator-type="window-header"] .separator-label {
+        color: #64b5f6;
+        background: rgba(100, 181, 246, 0.12);
+        border-color: rgba(100, 181, 246, 0.35);
+      }
+      .pinned-separator[data-separator-type="window-header"] .separator-line {
+        background: linear-gradient(
+          to right,
+          transparent,
+          rgba(100, 181, 246, 0.2) 20%,
+          rgba(100, 181, 246, 0.45) 50%,
+          rgba(100, 181, 246, 0.2) 80%,
+          transparent
+        );
+      }
+    }
+
+    /* 右键上下文菜单 */
+    .context-menu {
+      position: fixed;
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 4px 0;
+      min-width: 160px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.08);
+      z-index: 2000;
+      display: none;
+      font-family: Arial, "PingFangSC", "Microsoft YaHei", 微软雅黑, sans-serif;
+      font-size: 12px;
+    }
+    .context-menu.visible {
+      display: block;
+    }
+    .context-menu-item {
+      padding: 7px 14px;
+      cursor: pointer;
+      color: var(--text-color);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+    .context-menu-item:hover {
+      background: var(--hover-bg);
+    }
+    .context-menu-item .ctx-icon {
+      font-size: 13px;
+      width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .context-menu-separator {
+      height: 1px;
+      background: var(--border-color);
+      margin: 3px 0;
+    }
+    @media (prefers-color-scheme: dark) {
+      .context-menu {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25);
+      }
+    }
   </style>
 </head>
 <body>
@@ -921,8 +1020,22 @@
         <button class="nav-btn back-btn" id="backBtn" data-i18n-title="backBtn" disabled>‹</button>
         <button class="nav-btn forward-btn" id="forwardBtn" data-i18n-title="forwardBtn" disabled>›</button>
         <button class="nav-btn refresh-btn" id="refreshBtn" data-i18n-title="refreshBtn">↻</button>
-        <button class="organize-btn" id="organizeBtn" data-i18n="organizeBtn">Organize</button>
-        <button class="export-btn" id="exportBtn" data-i18n="exportBtn">Export</button>
+        <button class="organize-btn" id="organizeBtn" data-i18n-title="organizeBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" viewBox="0 0 16 15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="2.5" r="1.8" fill="currentColor" stroke="none"/>
+            <circle cx="3" cy="12" r="1.8" fill="currentColor" stroke="none"/>
+            <circle cx="13" cy="12" r="1.8" fill="currentColor" stroke="none"/>
+            <line x1="8" y1="4.3" x2="3" y2="10.2"/>
+            <line x1="8" y1="4.3" x2="13" y2="10.2"/>
+          </svg>
+        </button>
+        <button class="export-btn" id="exportBtn" data-i18n-title="exportBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="2.5,9.5 2.5,12.5 12.5,12.5 12.5,9.5"/>
+            <line x1="7.5" y1="9.5" x2="7.5" y2="3"/>
+            <polyline points="5,5.5 7.5,3 10,5.5"/>
+          </svg>
+        </button>
       </div>
     </div>
     
@@ -940,6 +1053,18 @@
     </div>
   </div>
   
+  <!-- 右键上下文菜单 -->
+  <div id="contextMenu" class="context-menu">
+    <div class="context-menu-item" id="ctxMoveToWindow">
+      <span class="ctx-icon">⧉</span>
+      <span data-i18n="ctxMoveToWindow">移动到新窗口</span>
+    </div>
+    <div class="context-menu-item" id="ctxCopyLink">
+      <span class="ctx-icon">⎘</span>
+      <span data-i18n="ctxCopyLink">复制链接</span>
+    </div>
+  </div>
+
   <script src="../shared/i18n.js"></script>
   <script src="../shared/history.js"></script>
   <script src="../shared/favicon-cache.js"></script>

@@ -46,35 +46,17 @@ cp manifest.json "$TEMP_DIR/"
 # 复制源码目录（保留完整结构）
 cp -r src "$TEMP_DIR/"
 
-# 在打包阶段将 background 依赖合并内联，生成单文件 background.js
-echo "🔗 合并 background 依赖为单文件..."
-BUNDLE_FILE="$TEMP_DIR/background.bundle.js"
-PACKED_BG="$TEMP_DIR/background.packed.js"
-
-# 按依赖顺序生成 bundle（先类/工具，再主逻辑）
-cat \
-  "$TEMP_DIR/src/background/PinnedTabPersistentStorage.js" \
-  "$TEMP_DIR/src/background/DelayedMergeExecutor.js" \
-  "$TEMP_DIR/src/background/SettingsCache.js" \
-  "$TEMP_DIR/src/background/StorageManager.js" \
-  "$TEMP_DIR/src/background/tools.js" \
-  "$TEMP_DIR/src/background/AutoBackTrack.js" \
-  > "$BUNDLE_FILE"
-
-# 去除 background.js 中的 importScripts 行，合并为单文件
-grep -v "^importScripts(" "$TEMP_DIR/src/background/background.js" > "$TEMP_DIR/background.without_imports.js"
-cat "$BUNDLE_FILE" "$TEMP_DIR/background.without_imports.js" > "$PACKED_BG"
-mv "$PACKED_BG" "$TEMP_DIR/src/background/background.js"
-rm -f "$TEMP_DIR/background.without_imports.js" "$BUNDLE_FILE"
-
-# 打包产物中移除已内联的依赖文件（background.js 已包含所有逻辑）
+# 移除 background 源模块（background.js 已由 esbuild 打包为单文件 IIFE）
 rm -f \
-  "$TEMP_DIR/src/background/PinnedTabPersistentStorage.js" \
+  "$TEMP_DIR/src/background/background-main.js" \
+  "$TEMP_DIR/src/background/instances.js" \
+  "$TEMP_DIR/src/background/TabTreePersistentStorage.js" \
+  "$TEMP_DIR/src/background/StorageManager.js" \
   "$TEMP_DIR/src/background/DelayedMergeExecutor.js" \
   "$TEMP_DIR/src/background/SettingsCache.js" \
-  "$TEMP_DIR/src/background/StorageManager.js" \
-  "$TEMP_DIR/src/background/tools.js" \
-  "$TEMP_DIR/src/background/AutoBackTrack.js"
+  "$TEMP_DIR/src/background/PinnedTabPersistentStorage.js" \
+  "$TEMP_DIR/src/background/AutoBackTrack.js" \
+  "$TEMP_DIR/src/background/tools.js"
 
 # 移除 popup 源模块（popup.js 已包含编译后的所有逻辑）
 rm -rf "$TEMP_DIR/src/popup/modules"
@@ -83,6 +65,7 @@ rm -f  "$TEMP_DIR/src/popup/popup-main.js"
 # 生产版：移除 sourcemap（开发版保留）
 if [ "$DEV" = false ]; then
   rm -f "$TEMP_DIR/src/popup/popup.js.map"
+  rm -f "$TEMP_DIR/src/background/background.js.map"
 fi
 
 # 复制国际化文件

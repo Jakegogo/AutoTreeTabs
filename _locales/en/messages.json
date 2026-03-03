@@ -496,5 +496,14 @@
   "openingCompleted": {
     "message": "Completed!",
     "description": "Message when all tabs are opened"
+  },
+
+  "ctxMoveToWindow": {
+    "message": "Move to New Window",
+    "description": "Context menu: move tab to a new window"
+  },
+  "ctxCopyLink": {
+    "message": "Copy Link",
+    "description": "Context menu: copy tab URL to clipboard"
   }
 }

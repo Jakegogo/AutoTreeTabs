@@ -5,9 +5,13 @@
   "main": "background.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "esbuild src/popup/popup-main.js --bundle --format=iife --sourcemap --outfile=src/popup/popup.js",
-    "build:prod": "esbuild src/popup/popup-main.js --bundle --format=iife --minify --outfile=src/popup/popup.js",
-    "watch": "esbuild src/popup/popup-main.js --bundle --format=iife --sourcemap --outfile=src/popup/popup.js --watch"
+    "build": "esbuild src/popup/popup-main.js --bundle --format=iife --sourcemap --outfile=src/popup/popup.js && esbuild src/background/background-main.js --bundle --format=iife --sourcemap --outfile=src/background/background.js",
+    "build:prod": "esbuild src/popup/popup-main.js --bundle --format=iife --minify --outfile=src/popup/popup.js && esbuild src/background/background-main.js --bundle --format=iife --minify --outfile=src/background/background.js",
+    "build:popup": "esbuild src/popup/popup-main.js --bundle --format=iife --sourcemap --outfile=src/popup/popup.js",
+    "build:bg": "esbuild src/background/background-main.js --bundle --format=iife --sourcemap --outfile=src/background/background.js",
+    "build:bg:prod": "esbuild src/background/background-main.js --bundle --format=iife --minify --outfile=src/background/background.js",
+    "watch": "esbuild src/popup/popup-main.js --bundle --format=iife --sourcemap --outfile=src/popup/popup.js --watch",
+    "watch:bg": "esbuild src/background/background-main.js --bundle --format=iife --sourcemap --outfile=src/background/background.js --watch"
   },
   "keywords": [],
   "author": "",

@@ -455,6 +455,66 @@
       console.warn("Error closing tabs:", error);
     }
   }
+  async function moveTabToNewWindow(tabId) {
+    try {
+      await chrome.windows.create({ tabId });
+    } catch (error) {
+      console.error("Error moving tab to new window:", error);
+    }
+  }
+
+  // src/popup/modules/context-menu.js
+  var _contextTabId = null;
+  var _contextTabUrl = null;
+  function initContextMenu() {
+    const menu = document.getElementById("contextMenu");
+    if (!menu) return;
+    document.addEventListener("click", hideContextMenu);
+    document.addEventListener("contextmenu", (e) => {
+      if (!e.target.closest(".tree-node")) hideContextMenu();
+    });
+    document.getElementById("treeContainer")?.addEventListener("scroll", hideContextMenu);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") hideContextMenu();
+    });
+    document.getElementById("ctxMoveToWindow")?.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      hideContextMenu();
+      if (_contextTabId != null) await moveTabToNewWindow(_contextTabId);
+    });
+    document.getElementById("ctxCopyLink")?.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      hideContextMenu();
+      if (_contextTabUrl) {
+        try {
+          await navigator.clipboard.writeText(_contextTabUrl);
+        } catch {
+        }
+      }
+    });
+  }
+  function showContextMenu(tabId, tabUrl, x, y) {
+    _contextTabId = tabId;
+    _contextTabUrl = tabUrl;
+    const menu = document.getElementById("contextMenu");
+    if (!menu) return;
+    menu.style.left = "0px";
+    menu.style.top = "0px";
+    menu.classList.add("visible");
+    const menuRect = menu.getBoundingClientRect();
+    const winW = window.innerWidth;
+    const winH = window.innerHeight;
+    let left = x;
+    let top = y;
+    if (left + menuRect.width > winW) left = winW - menuRect.width - 4;
+    if (top + menuRect.height > winH) top = winH - menuRect.height - 4;
+    menu.style.left = Math.max(0, left) + "px";
+    menu.style.top = Math.max(0, top) + "px";
+  }
+  function hideContextMenu() {
+    const menu = document.getElementById("contextMenu");
+    if (menu) menu.classList.remove("visible");
+  }
 
   // src/popup/modules/tree.js
   var _saveSearchHistory = async (_term) => {
@@ -488,7 +548,7 @@
         sep.style.display = "none";
         return;
       }
-      if (type === "group-header" || type === "pinned-header" || type === "") {
+      if (type === "group-header" || type === "pinned-header" || type === "" || type === "window-header") {
         const headerGroupId = sep.dataset.groupId || null;
         let sibling = sep.nextElementSibling;
         let hasVisible = false;
@@ -693,6 +753,17 @@
       renderNode(node, container, 0, [], false);
     });
     const hasGroupInfo = state.tabGroupInfo && Object.keys(state.tabGroupInfo).length > 0;
+    const isRecentMode = !!(state.selectedFilters && state.selectedFilters.recent);
+    let windowOrderMap = /* @__PURE__ */ new Map();
+    if (!hasGroupInfo && !isRecentMode) {
+      let order = 1;
+      normalTabs.forEach((node) => {
+        if (!windowOrderMap.has(node.windowId)) {
+          windowOrderMap.set(node.windowId, order++);
+        }
+      });
+      if (windowOrderMap.size <= 1) windowOrderMap = /* @__PURE__ */ new Map();
+    }
     let prevGroupId = null;
     let prevWindowId = null;
     normalTabs.forEach((node, index, array) => {
@@ -701,6 +772,21 @@
       const currIsGrouped = currGroupId !== -1;
       const windowChanged = index > 0 && currWindowId !== prevWindowId;
       const groupChanged = index === 0 ? false : windowChanged || currGroupId !== prevGroupId;
+      if (windowOrderMap.size > 0 && (index === 0 || windowChanged)) {
+        const winNum = windowOrderMap.get(currWindowId);
+        const winSep = document.createElement("div");
+        winSep.className = "pinned-separator";
+        winSep.dataset.separatorType = "window-header";
+        winSep.dataset.windowId = String(currWindowId);
+        const winLabel = document.createElement("span");
+        winLabel.className = "separator-label";
+        winLabel.textContent = `${i18n("window") || "Window"} ${winNum}`;
+        const winLine = document.createElement("div");
+        winLine.className = "separator-line";
+        winSep.appendChild(winLabel);
+        winSep.appendChild(winLine);
+        container.appendChild(winSep);
+      }
       if (hasGroupInfo && currIsGrouped && (index === 0 || groupChanged)) {
         const header = document.createElement("div");
         header.className = "pinned-separator";
@@ -859,7 +945,7 @@ ${node.url}`;
     selectBtnContainer.className = "select-btn-container";
     const selectBtn = document.createElement("button");
     selectBtn.className = "select-btn";
-    selectBtn.textContent = "\u2713";
+    selectBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="12" viewBox="0 0 11 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,5 4,8.5 10,1.5"/></svg>';
     selectBtn.title = i18n("selectNode");
     const selectOverlay = document.createElement("div");
     selectOverlay.className = "select-btn-overlay";
@@ -877,10 +963,10 @@ ${node.url}`;
     pinIcon.className = "pin-icon";
     const isPinnedForButton = state.pinnedTabsCache && state.pinnedTabsCache[node.id];
     if (isPinnedForButton) {
-      pinIcon.textContent = "\u{1F4CC}";
+      pinIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="12" viewBox="0 0 11 12"><path fill="currentColor" d="M5.5,0.5 L9,4.5 L5.5,8 L2,4.5 Z"/><line x1="5.5" y1="8" x2="5.5" y2="11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
       pinBtn.title = i18n("unpinFromTop") || "Unpin from top";
     } else {
-      pinIcon.textContent = "\u2B06";
+      pinIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5.5" y1="9" x2="5.5" y2="3"/><polyline points="2.5,5.5 5.5,2.5 8.5,5.5"/><line x1="2" y1="9.5" x2="9" y2="9.5"/></svg>';
       pinBtn.title = i18n("pinToTop") || "Pin to top";
     }
     pinBtn.appendChild(pinIcon);
@@ -927,7 +1013,7 @@ ${node.url}`;
     closeBtnContainer.className = "close-btn-container";
     const closeBtn = document.createElement("button");
     closeBtn.className = "close-btn";
-    closeBtn.textContent = "\xD7";
+    closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/></svg>';
     const closeOverlay = document.createElement("div");
     closeOverlay.className = "close-btn-overlay";
     closeOverlay.addEventListener("click", (e) => {
@@ -947,6 +1033,11 @@ ${node.url}`;
     actionsContainer.appendChild(pinBtnContainer);
     actionsContainer.appendChild(closeBtnContainer);
     nodeElement.appendChild(actionsContainer);
+    nodeElement.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      showContextMenu(node.id, node.url || "", e.clientX, e.clientY);
+    });
     nodeElement.addEventListener("click", async (e) => {
       e.stopPropagation();
       console.log(`Node clicked: ${node.id} - ${node.title}`);
@@ -1232,7 +1323,7 @@ ${node.url}`;
       normalized: state.currentSearchTerm,
       length: state.currentSearchTerm.length
     });
-    if (state.selectedFilters.recent && !state.isRefreshingByRecent) {
+    if ((state.selectedFilters.recent || state.selectedFilters.recent != state.selectedFilters.lastRecent) && !state.isRefreshingByRecent) {
       try {
         state.isRefreshingByRecent = true;
         await loadTabTree();
@@ -1550,6 +1641,7 @@ ${node.url}`;
       });
     }
     initializeSearch();
+    initContextMenu();
     installDebugGlobals(performSearch);
   });
   function loadScriptOnce(src) {

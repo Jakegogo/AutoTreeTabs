@@ -7,6 +7,7 @@ import { detectFileType, getFileTypeConfig } from './file-types.js';
 import { getBookmarkInfo } from './bookmarks.js';
 import { selectNodeAndChildren } from './selection.js';
 import { closeSelectedOrCurrent } from './tab-actions.js';
+import { showContextMenu } from './context-menu.js';
 
 // 由 popup-main.js 注册，避免 tree.js 反向依赖 search.js
 let _saveSearchHistory = async (_term) => {};
@@ -45,7 +46,7 @@ export function updateSeparatorVisibility() {
       sep.style.display = 'none';
       return;
     }
-    if (type === 'group-header' || type === 'pinned-header' || type === '') {
+    if (type === 'group-header' || type === 'pinned-header' || type === '' || type === 'window-header') {
       const headerGroupId = sep.dataset.groupId || null;
       let sibling = sep.nextElementSibling;
       let hasVisible = false;
@@ -298,8 +299,22 @@ export function renderTree(tree) {
     renderNode(node, container, 0, [], false);
   });
 
-  // 渲染普通标签页（在组前插入分隔符与组名）
+  // 渲染普通标签页（在组/窗口前插入分隔符与标签）
   const hasGroupInfo = state.tabGroupInfo && Object.keys(state.tabGroupInfo).length > 0;
+  const isRecentMode = !!(state.selectedFilters && state.selectedFilters.recent);
+
+  // 构建窗口序号映射（仅在非最近模式、非分组模式、多窗口时展示窗口标识）
+  let windowOrderMap = new Map();
+  if (!hasGroupInfo && !isRecentMode) {
+    let order = 1;
+    normalTabs.forEach(node => {
+      if (!windowOrderMap.has(node.windowId)) {
+        windowOrderMap.set(node.windowId, order++);
+      }
+    });
+    if (windowOrderMap.size <= 1) windowOrderMap = new Map(); // 单窗口不显示
+  }
+
   let prevGroupId = null;
   let prevWindowId = null;
   normalTabs.forEach((node, index, array) => {
@@ -310,6 +325,24 @@ export function renderTree(tree) {
     const windowChanged = index > 0 && currWindowId !== prevWindowId;
     const groupChanged = index === 0 ? false : (windowChanged || currGroupId !== prevGroupId);
 
+    // 窗口分隔符（多窗口 + 非分组 + 非最近模式）
+    if (windowOrderMap.size > 0 && (index === 0 || windowChanged)) {
+      const winNum = windowOrderMap.get(currWindowId);
+      const winSep = document.createElement('div');
+      winSep.className = 'pinned-separator';
+      winSep.dataset.separatorType = 'window-header';
+      winSep.dataset.windowId = String(currWindowId);
+      const winLabel = document.createElement('span');
+      winLabel.className = 'separator-label';
+      winLabel.textContent = `${i18n('window') || 'Window'} ${winNum}`;
+      const winLine = document.createElement('div');
+      winLine.className = 'separator-line';
+      winSep.appendChild(winLabel);
+      winSep.appendChild(winLine);
+      container.appendChild(winSep);
+    }
+
+    // 分组分隔符
     if (hasGroupInfo && currIsGrouped && ((index === 0) || groupChanged)) {
       const header = document.createElement('div');
       header.className = 'pinned-separator';
@@ -504,7 +537,7 @@ export function renderNode(node, container, depth, parentLines = [], isLast = fa
 
   const selectBtn = document.createElement('button');
   selectBtn.className = 'select-btn';
-  selectBtn.textContent = '✓';
+  selectBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="12" viewBox="0 0 11 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,5 4,8.5 10,1.5"/></svg>';
   selectBtn.title = i18n('selectNode');
 
   const selectOverlay = document.createElement('div');
@@ -528,10 +561,12 @@ export function renderNode(node, container, depth, parentLines = [], isLast = fa
 
   const isPinnedForButton = state.pinnedTabsCache && state.pinnedTabsCache[node.id];
   if (isPinnedForButton) {
-    pinIcon.textContent = '📌';
+    // 已置顶：实心菱形图钉，表示"点击取消置顶"
+    pinIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="12" viewBox="0 0 11 12"><path fill="currentColor" d="M5.5,0.5 L9,4.5 L5.5,8 L2,4.5 Z"/><line x1="5.5" y1="8" x2="5.5" y2="11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
     pinBtn.title = i18n('unpinFromTop') || 'Unpin from top';
   } else {
-    pinIcon.textContent = '⬆';
+    // 未置顶：向上箭头+底线，表示"置顶"
+    pinIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5.5" y1="9" x2="5.5" y2="3"/><polyline points="2.5,5.5 5.5,2.5 8.5,5.5"/><line x1="2" y1="9.5" x2="9" y2="9.5"/></svg>';
     pinBtn.title = i18n('pinToTop') || 'Pin to top';
   }
 
@@ -589,7 +624,7 @@ export function renderNode(node, container, depth, parentLines = [], isLast = fa
 
   const closeBtn = document.createElement('button');
   closeBtn.className = 'close-btn';
-  closeBtn.textContent = '×';
+  closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/></svg>';
 
   const closeOverlay = document.createElement('div');
   closeOverlay.className = 'close-btn-overlay';
@@ -614,6 +649,13 @@ export function renderNode(node, container, depth, parentLines = [], isLast = fa
   actionsContainer.appendChild(closeBtnContainer);
 
   nodeElement.appendChild(actionsContainer);
+
+  // 右键菜单
+  nodeElement.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    showContextMenu(node.id, node.url || '', e.clientX, e.clientY);
+  });
 
   // 点击节点事件
   nodeElement.addEventListener('click', async (e) => {

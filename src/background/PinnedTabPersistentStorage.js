@@ -1,5 +1,5 @@
 // 置顶标签页持久化存储系统 (基于URL)
-class PinnedTabPersistentStorage {
+export class PinnedTabPersistentStorage {
   // 规范化 URL（复用 TabTreePersistentStorage 的方法）
   normalizeUrl(url) {
     try {
@@ -12,6 +12,7 @@ class PinnedTabPersistentStorage {
   }
 
   constructor(storageManager) {
+    this._sm = storageManager;
     this.maxAge = 30 * 24 * 60 * 60 * 1000; // 30天过期时间
   }
 
@@ -25,16 +26,16 @@ class PinnedTabPersistentStorage {
         return false;
       }
 
-      const pinnedTabs = await storageManager.getPinnedTabs();
+      const pinnedTabs = await this._sm.getPinnedTabs();
       pinnedTabs[normalizedUrl] = {
         url: tabInfo.url,
         title: tabInfo.title,
         timestamp: Date.now()
       };
 
-      storageManager.pinnedTabsCache = pinnedTabs;
-      storageManager.clearPinnedTabIdsCache(); // 清除缓存，下次获取时重建
-      storageManager.scheduleWrite();
+      this._sm.pinnedTabsCache = pinnedTabs;
+      this._sm.clearPinnedTabIdsCache(); // 清除缓存，下次获取时重建
+      this._sm.scheduleWrite();
 
       console.log(`📌 Added pinned tab by URL: ${normalizedUrl} - ${tabInfo.title}`);
       return true;
@@ -50,12 +51,12 @@ class PinnedTabPersistentStorage {
       const tab = await chrome.tabs.get(tabId);
       const normalizedUrl = this.normalizeUrl(tab.url);
 
-      const pinnedTabs = await storageManager.getPinnedTabs();
+      const pinnedTabs = await this._sm.getPinnedTabs();
       if (pinnedTabs[normalizedUrl]) {
         delete pinnedTabs[normalizedUrl];
-        storageManager.pinnedTabsCache = pinnedTabs;
-        storageManager.clearPinnedTabIdsCache(); // 清除缓存，下次获取时重建
-        storageManager.scheduleWrite();
+        this._sm.pinnedTabsCache = pinnedTabs;
+        this._sm.clearPinnedTabIdsCache(); // 清除缓存，下次获取时重建
+        this._sm.scheduleWrite();
         console.log(`📌 Removed pinned tab by URL: ${normalizedUrl}`);
         return true;
       }
@@ -71,7 +72,7 @@ class PinnedTabPersistentStorage {
     try {
       const tab = await chrome.tabs.get(tabId);
       const normalizedUrl = this.normalizeUrl(tab.url);
-      const pinnedTabs = await storageManager.getPinnedTabs();
+      const pinnedTabs = await this._sm.getPinnedTabs();
       return !!pinnedTabs[normalizedUrl];
     } catch (error) {
       return false;
@@ -81,7 +82,7 @@ class PinnedTabPersistentStorage {
   // 根据当前标签页构建 tabId -> 数据 的置顶映射
   async buildPinnedTabIdsCache() {
     try {
-      const pinnedTabs = await storageManager.getPinnedTabs();
+      const pinnedTabs = await this._sm.getPinnedTabs();
       const pinnedUrls = Object.keys(pinnedTabs);
 
       if (pinnedUrls.length === 0) {
@@ -109,7 +110,7 @@ class PinnedTabPersistentStorage {
   // 清理无效的置顶标签页
   async cleanupInvalidPinnedTabs() {
     try {
-      const pinnedTabs = await storageManager.getPinnedTabs();
+      const pinnedTabs = await this._sm.getPinnedTabs();
       const allTabs = await chrome.tabs.query({});
       const validUrls = new Set(allTabs.map(tab => this.normalizeUrl(tab.url)));
       let hasChanges = false;
@@ -123,9 +124,9 @@ class PinnedTabPersistentStorage {
       }
 
       if (hasChanges) {
-        storageManager.pinnedTabsCache = pinnedTabs;
-        storageManager.clearPinnedTabIdsCache(); // 清除缓存，下次获取时重建
-        storageManager.scheduleWrite();
+        this._sm.pinnedTabsCache = pinnedTabs;
+        this._sm.clearPinnedTabIdsCache(); // 清除缓存，下次获取时重建
+        this._sm.scheduleWrite();
         console.log('🧹 Cleaned up invalid pinned tabs');
       }
 
@@ -139,7 +140,7 @@ class PinnedTabPersistentStorage {
   // 清理过期的置顶标签页
   async cleanupExpiredPinnedTabs() {
     try {
-      const pinnedTabs = await storageManager.getPinnedTabs();
+      const pinnedTabs = await this._sm.getPinnedTabs();
       const now = Date.now();
       let hasChanges = false;
 
@@ -152,9 +153,9 @@ class PinnedTabPersistentStorage {
       }
 
       if (hasChanges) {
-        storageManager.pinnedTabsCache = pinnedTabs;
-        storageManager.clearPinnedTabIdsCache(); // 清除缓存，下次获取时重建
-        storageManager.scheduleWrite();
+        this._sm.pinnedTabsCache = pinnedTabs;
+        this._sm.clearPinnedTabIdsCache(); // 清除缓存，下次获取时重建
+        this._sm.scheduleWrite();
         console.log('🧹 Cleaned up expired pinned tabs');
       }
 
@@ -167,7 +168,7 @@ class PinnedTabPersistentStorage {
 
   // 获取所有置顶标签页的URL
   async getPinnedTabUrls() {
-    const pinnedTabs = await storageManager.getPinnedTabs();
+    const pinnedTabs = await this._sm.getPinnedTabs();
     return Object.keys(pinnedTabs);
   }
 
@@ -189,5 +190,3 @@ class PinnedTabPersistentStorage {
     return !invalidPrefixes.some(prefix => url.startsWith(prefix));
   }
 }
-
-

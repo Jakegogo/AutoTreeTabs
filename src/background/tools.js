@@ -1,5 +1,7 @@
+import { storageManager } from './instances.js';
+
 // 按需注入content script的函数
-async function injectContentScript(tabId) {
+export async function injectContentScript(tabId) {
   try {
     // 检查是否需要注入content script
     const results = await chrome.scripting.executeScript({
@@ -29,7 +31,7 @@ async function injectContentScript(tabId) {
 
 
 // 清理标签页的滚动位置（根据URL）
-async function cleanupScrollPositionForTab(tabId) {
+export async function cleanupScrollPositionForTab(tabId) {
   try {
     const tab = await chrome.tabs.get(tabId);
     if (tab && tab.url) {
@@ -38,6 +40,5 @@ async function cleanupScrollPositionForTab(tabId) {
     }
   } catch (error) {
     // 标签页已关闭，无法获取URL，跳过清理
-    // console.log(`Could not clean scroll position for tab ${tabId}: tab no longer exists`);
   }
 }

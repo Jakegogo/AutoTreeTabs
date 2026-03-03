@@ -497,5 +497,14 @@
   "openingCompleted": {
     "message": "完成！",
     "description": "所有分頁開啟完成的消息"
+  },
+
+  "ctxMoveToWindow": {
+    "message": "移動到新視窗",
+    "description": "右鍵選單：移動到新視窗"
+  },
+  "ctxCopyLink": {
+    "message": "複製連結",
+    "description": "右鍵選單：複製分頁連結"
   }
 }

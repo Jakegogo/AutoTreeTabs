@@ -497,5 +497,14 @@
   "openingCompleted": {
     "message": "完了！",
     "description": "すべてのタブが開かれた際のメッセージ"
+  },
+
+  "ctxMoveToWindow": {
+    "message": "新しいウィンドウに移動",
+    "description": "コンテキストメニュー：新しいウィンドウに移動"
+  },
+  "ctxCopyLink": {
+    "message": "リンクをコピー",
+    "description": "コンテキストメニュー：タブURLをクリップボードにコピー"
   }
 }

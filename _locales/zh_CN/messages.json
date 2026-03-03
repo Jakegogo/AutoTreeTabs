@@ -496,5 +496,14 @@
   "openingCompleted": {
     "message": "完成！",
     "description": "所有标签页打开完成的消息"
+  },
+
+  "ctxMoveToWindow": {
+    "message": "移动到新窗口",
+    "description": "右键菜单：移动到新窗口"
+  },
+  "ctxCopyLink": {
+    "message": "复制链接",
+    "description": "右键菜单：复制标签页链接"
   }
 }

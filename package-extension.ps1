@@ -62,35 +62,25 @@ if (Test-Path $AssetsPath) {
     Write-Warning "assets 目录不存在，请先生成资源文件"
 }
 
-# ── 合并 background 依赖为单文件 ────────────────────────────────
-Write-Host "合并 background 依赖为单文件..." -ForegroundColor Yellow
+# ── 清理 background 源模块（已由 esbuild 打包进 background.js）──
+Write-Host "清理 background 源模块文件..." -ForegroundColor Yellow
 
 $BgDir = Join-Path $TempDir "src\background"
 
-$BundleFiles = @(
-    "PinnedTabPersistentStorage.js",
-    "DelayedMergeExecutor.js",
-    "SettingsCache.js",
+# 这些文件已由 esbuild 打包进 background.js，无需单独分发
+$BgSourceFiles = @(
+    "background-main.js",
+    "instances.js",
     "StorageManager.js",
-    "tools.js",
-    "AutoBackTrack.js"
+    "SettingsCache.js",
+    "DelayedMergeExecutor.js",
+    "TabTreePersistentStorage.js",
+    "PinnedTabPersistentStorage.js",
+    "AutoBackTrack.js",
+    "tools.js"
 )
 
-# 按依赖顺序拼接所有模块
-$BundleContent = $BundleFiles | ForEach-Object {
-    Get-Content (Join-Path $BgDir $_) -Raw
-}
-
-# 去除 background.js 中的 importScripts 行
-$MainBg = Get-Content (Join-Path $BgDir "background.js") |
-    Where-Object { $_ -notmatch '^importScripts\(' }
-
-# 合并：模块 bundle + 主脚本（无 importScripts）
-$Packed = ($BundleContent + ($MainBg -join "`n")) -join "`n"
-Set-Content -Path (Join-Path $BgDir "background.js") -Value $Packed -Encoding UTF8
-
-# 移除已内联的依赖文件
-$BundleFiles | ForEach-Object {
+$BgSourceFiles | ForEach-Object {
     $FilePath = Join-Path $BgDir $_
     if (Test-Path $FilePath) { Remove-Item $FilePath -Force }
 }
@@ -108,8 +98,10 @@ if (Test-Path $PopupMainJs) { Remove-Item $PopupMainJs -Force }
 
 # 生产版：移除 sourcemap（开发版保留）
 if (-not $Dev) {
-    $MapFile = Join-Path $TempDir "src\popup\popup.js.map"
-    if (Test-Path $MapFile) { Remove-Item $MapFile -Force }
+    $PopupMapFile = Join-Path $TempDir "src\popup\popup.js.map"
+    if (Test-Path $PopupMapFile) { Remove-Item $PopupMapFile -Force }
+    $BgMapFile = Join-Path $BgDir "background.js.map"
+    if (Test-Path $BgMapFile) { Remove-Item $BgMapFile -Force }
 }
 
 # ── 打包为 ZIP ──────────────────────────────────────────────────

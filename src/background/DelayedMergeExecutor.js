@@ -1,5 +1,5 @@
 // 通用延迟合并调用工具类
-class DelayedMergeExecutor {
+export class DelayedMergeExecutor {
   constructor(delay = 500) {
     this.delay = delay;
     this.eventQueue = [];

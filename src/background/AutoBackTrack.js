@@ -1,21 +1,38 @@
+import { tabSnapshotExecutor } from './instances.js';
 
 // 存储标签页状态，用于在关闭时恢复顺序信息
 let tabIndexSnapshot = new Map();
 
-// 监听标签页更新，保存位置信息
-chrome.tabs.onMoved.addListener((tabId, moveInfo) => {
-    // 当标签页移动时延迟更新快照
-    tabSnapshotExecutor.addEvent(updateTabSnapshot, []);
-});
+// 标签页关闭方向追踪（简单索引方案）
+let tabCloseDirection = {
+    lastCloseTabIndex: -1,        // 上一次关闭的标签页索引
+    beforeLastCloseTabIndex: -1,  // 上上次关闭的标签页索引
+    currentDirection: 'right'     // 当前方向：'left' 或 'right'
+};
 
-chrome.tabs.onCreated.addListener(() => {
-    // 当创建新标签页时延迟更新快照
-    tabSnapshotExecutor.addEvent(updateTabSnapshot, []);
-});
+// 构建标签页树结构（AutoBackTrack 内部使用）
+function buildTabTree(tabs, tabRelations) {
+  const tabMap = new Map();
+  const rootTabs = [];
 
+  tabs.forEach(tab => {
+    tabMap.set(tab.id, { ...tab, children: [] });
+  });
+
+  tabs.forEach(tab => {
+    const parentId = tabRelations[tab.id];
+    if (parentId && tabMap.has(parentId)) {
+      tabMap.get(parentId).children.push(tabMap.get(tab.id));
+    } else {
+      rootTabs.push(tabMap.get(tab.id));
+    }
+  });
+
+  return rootTabs;
+}
 
 // 更新标签页位置快照
-async function updateTabSnapshot() {
+export async function updateTabSnapshot() {
     try {
         const tabs = await chrome.tabs.query({});
         tabs.forEach(tab => {
@@ -26,30 +43,39 @@ async function updateTabSnapshot() {
     }
 }
 
+// 删除指定标签页的快照记录
+export function deleteTabSnapshot(tabId) {
+    tabIndexSnapshot.delete(tabId);
+}
+
+// 添加快照更新事件（延迟合并）
+export function scheduleSnapshotUpdate() {
+    tabSnapshotExecutor.addEvent(updateTabSnapshot, []);
+}
 
 // 查找下一个要激活的标签页（智能方向检测 - 基于索引）
-function findNextTabToActivate(closedTabId, tabRelations, allTabs) {
+export function findNextTabToActivate(closedTabId, tabRelations, allTabs) {
     // 检测关闭方向（基于索引）
     const direction = detectCloseDirectionFromIndex();
     console.log(`🧭 Using direction: ${direction.toUpperCase()} for sibling search`);
-    
+
     const tabMap = new Map();
-    
+
     // 创建标签页映射
     allTabs.forEach(tab => {
       tabMap.set(tab.id, tab);
     });
-    
+
     // 构建树结构
     const tree = buildTabTree(allTabs, tabRelations);
-    
+
     // 查找被关闭标签页的父节点ID
     const parentId = tabRelations[closedTabId];
-    
+
     if (parentId && tabMap.has(parentId)) {
       // 找到父节点，查找同级节点
       const siblings = allTabs.filter(tab => tabRelations[tab.id] === parentId);
-      
+
       // 根据检测到的方向优先查找兄弟节点
       if (direction === 'right') {
         // 优先查找下一个兄弟节点（往右）
@@ -58,7 +84,7 @@ function findNextTabToActivate(closedTabId, tabRelations, allTabs) {
           console.log(`Found next sibling (RIGHT): ${nextSibling.id}`);
           return nextSibling.id;
         }
-        
+
         // 没有下一个兄弟节点，查找前一个兄弟节点
         const previousSibling = findPreviousSibling(closedTabId, siblings);
         if (previousSibling) {
@@ -72,7 +98,7 @@ function findNextTabToActivate(closedTabId, tabRelations, allTabs) {
           console.log(`Found previous sibling (LEFT): ${previousSibling.id}`);
           return previousSibling.id;
         }
-        
+
         // 没有前一个兄弟节点，查找下一个兄弟节点
         const nextSibling = findNextSibling(closedTabId, siblings);
         if (nextSibling) {
@@ -80,14 +106,14 @@ function findNextTabToActivate(closedTabId, tabRelations, allTabs) {
           return nextSibling.id;
         }
       }
-      
+
       // 没有找到任何兄弟节点，返回父节点
       console.log(`No siblings found, activating parent: ${parentId}`);
       return parentId;
     } else {
       // 是根节点，查找同级的根节点
       const rootTabs = allTabs.filter(tab => !tabRelations[tab.id]);
-      
+
       // 根据方向优先查找根节点兄弟
       if (direction === 'right') {
         // 优先查找下一个根兄弟节点
@@ -96,7 +122,7 @@ function findNextTabToActivate(closedTabId, tabRelations, allTabs) {
           console.log(`Found next root sibling (RIGHT): ${nextRoot.id}`);
           return nextRoot.id;
         }
-        
+
         // 没有下一个根兄弟节点，查找前一个根兄弟节点
         const previousRoot = findPreviousSibling(closedTabId, rootTabs);
         if (previousRoot) {
@@ -110,7 +136,7 @@ function findNextTabToActivate(closedTabId, tabRelations, allTabs) {
           console.log(`Found previous root sibling (LEFT): ${previousRoot.id}`);
           return previousRoot.id;
         }
-        
+
         // 没有前一个根兄弟节点，查找下一个根兄弟节点
         const nextRoot = findNextSibling(closedTabId, rootTabs);
         if (nextRoot) {
@@ -119,7 +145,7 @@ function findNextTabToActivate(closedTabId, tabRelations, allTabs) {
         }
       }
     }
-    
+
     return null;
   }
 
@@ -148,28 +174,22 @@ function findSibling(targetTabId, siblings, direction = 'previous') {
     console.log(`Available siblings:`, siblings.map(tab => `${tab.id}(${tab.index})`));
 
     // 重新构建关闭前的完整位置信息
-    // 现在所有剩余标签页的 index 已经重新排列，我们需要重建关闭前的顺序
     const reconstructedSiblings = [];
 
-    // 为每个兄弟标签页分配正确的原始位置
     siblings.forEach(tab => {
         if (tab.index < closedTabInfo.index) {
-            // 这个标签页在关闭的标签页之前，位置不变
             reconstructedSiblings.push({ ...tab, originalIndex: tab.index });
         } else {
-            // 这个标签页在关闭的标签页之后，原始位置应该 +1
             reconstructedSiblings.push({ ...tab, originalIndex: tab.index + 1 });
         }
     });
 
-    // 添加关闭的标签页
     reconstructedSiblings.push({
         id: targetTabId,
         originalIndex: closedTabInfo.index,
         title: '(closed)'
     });
 
-    // 按原始位置排序
     reconstructedSiblings.sort((a, b) => a.originalIndex - b.originalIndex);
     console.log(`Reconstructed order:`, reconstructedSiblings.map(tab => `${tab.id}(${tab.originalIndex})`));
 
@@ -178,12 +198,10 @@ function findSibling(targetTabId, siblings, direction = 'previous') {
 
     let siblingIndex;
     if (direction === 'previous') {
-        // 查找前一个兄弟节点
         if (targetIndex > 0) {
             siblingIndex = targetIndex - 1;
         }
     } else {
-        // 查找下一个兄弟节点
         if (targetIndex < reconstructedSiblings.length - 1) {
             siblingIndex = targetIndex + 1;
         }
@@ -191,7 +209,6 @@ function findSibling(targetTabId, siblings, direction = 'previous') {
 
     if (siblingIndex !== undefined) {
         const sibling = reconstructedSiblings[siblingIndex];
-        // 确保返回的是仍然存在的标签页
         const existingSibling = siblings.find(tab => tab.id === sibling.id);
         if (existingSibling) {
             console.log(`Found ${directionText} sibling: ${existingSibling.id} (was at original index: ${sibling.originalIndex})`);
@@ -203,19 +220,9 @@ function findSibling(targetTabId, siblings, direction = 'previous') {
     return null;
 }
 
-
-
-// 标签页关闭方向追踪（简单索引方案）
-let tabCloseDirection = {
-    lastCloseTabIndex: -1,        // 上一次关闭的标签页索引
-    beforeLastCloseTabIndex: -1,  // 上上次关闭的标签页索引
-    currentDirection: 'right'     // 当前方向：'left' 或 'right'
-};
-
 // 更新关闭方向索引
-function updateCloseDirectionIndex(closedTabId) {
+export function updateCloseDirectionIndex(closedTabId) {
     try {
-        // 从快照中获取被关闭标签页的索引位置
         const snapshotInfo = tabIndexSnapshot.get(closedTabId);
         if (!snapshotInfo) {
             console.log(`⚠️ Cannot find closed tab ${closedTabId} in tabIndexSnapshot`);
@@ -224,7 +231,6 @@ function updateCloseDirectionIndex(closedTabId) {
 
         const currentIndex = snapshotInfo.index;
 
-        // 更新索引记录：当前 -> 上次，上次 -> 上上次
         tabCloseDirection.beforeLastCloseTabIndex = tabCloseDirection.lastCloseTabIndex;
         tabCloseDirection.lastCloseTabIndex = currentIndex;
 
@@ -235,9 +241,8 @@ function updateCloseDirectionIndex(closedTabId) {
 }
 
 // 基于索引检测标签页关闭方向
-function detectCloseDirectionFromIndex() {
+export function detectCloseDirectionFromIndex() {
     try {
-        // 如果没有足够的历史记录，使用默认方向
         if (tabCloseDirection.lastCloseTabIndex === -1 || tabCloseDirection.beforeLastCloseTabIndex === -1) {
             console.log('🔍 No sufficient history, using default direction:', tabCloseDirection.currentDirection);
             return tabCloseDirection.currentDirection;
@@ -248,7 +253,6 @@ function detectCloseDirectionFromIndex() {
 
         console.log(`🔍 Index comparison: before last=${beforeLastIndex}, last=${lastIndex}`);
 
-        // 简单的方向判断逻辑
         if (lastIndex < beforeLastIndex) {
             tabCloseDirection.currentDirection = 'left';
             console.log('🏃‍⬅️ Direction detected: LEFT (closing tabs from right to left)');
@@ -263,6 +267,3 @@ function detectCloseDirectionFromIndex() {
         return tabCloseDirection.currentDirection;
     }
 }
-
-
-

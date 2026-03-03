@@ -11,7 +11,14 @@
       "Bash(npm run build:*)",
       "Bash(powershell -ExecutionPolicy Bypass -File package-extension.ps1)",
       "Bash(powershell -Command:*)",
-      "Bash(powershell -ExecutionPolicy Bypass -File package-extension.ps1:*)"
+      "Bash(powershell -ExecutionPolicy Bypass -File package-extension.ps1:*)",
+      "Bash(python3 -c \"import sys,json; d=json.loads\\(sys.stdin.read\\(\\)\\); print\\(''sources:'', d.get\\(''sources'', []\\)[:5]\\)\")",
+      "Bash(python3 -c \":*)",
+      "Bash(node -e \"const fs=require\\(''fs''\\); const m=JSON.parse\\(fs.readFileSync\\(''d:/Programing/chrome/AutoTreeTabs/src/background/background.js.map'',''utf8''\\)\\); console.log\\(''sources:'',m.sources\\);\")",
+      "Bash(node -e \":*)",
+      "Bash(npm run build:bg)",
+      "Bash(npm run build:bg:prod)",
+      "Bash(node:*)"
     ]
   }
 }

@@ -7,6 +7,7 @@ import { loadTabTree, updateNavigationButtons, registerSearchHistorySaver, regis
 import { activateTabAndWindow } from './modules/tab-actions.js';
 import { performSearch, clearSearch, renderChipsLayer, renderTagSuggestions, loadRecentPreference, saveSearchHistory, initializeSearch } from './modules/search.js';
 import { installDebugGlobals } from './modules/debug.js';
+import { initContextMenu } from './modules/context-menu.js';
 
 // 注入回调，避免 tree.js 反向依赖 search.js / tab-actions.js
 registerSearchHistorySaver(saveSearchHistory);
@@ -160,6 +161,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 初始化搜索功能（绑定 input/清除按钮事件）
   initializeSearch();
+
+  // 初始化右键菜单
+  initContextMenu();
 
   // 安装调试全局变量
   installDebugGlobals(performSearch);

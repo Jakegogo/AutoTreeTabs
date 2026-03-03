@@ -497,5 +497,14 @@
   "openingCompleted": {
     "message": "완료!",
     "description": "모든 탭이 열렸을 때의 메시지"
+  },
+
+  "ctxMoveToWindow": {
+    "message": "새 창으로 이동",
+    "description": "컨텍스트 메뉴: 새 창으로 탭 이동"
+  },
+  "ctxCopyLink": {
+    "message": "링크 복사",
+    "description": "컨텍스트 메뉴: 탭 URL을 클립보드에 복사"
   }
 }
