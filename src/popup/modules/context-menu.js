@@ -1,10 +1,11 @@
 // ===================
 // 右键上下文菜单
 // ===================
-import { moveTabToNewWindow } from './tab-actions.js';
+import { moveTabToNewWindow, closeTabAndChildren } from './tab-actions.js';
 
 let _contextTabId = null;
 let _contextTabUrl = null;
+let _contextNode = null;
 
 export function initContextMenu() {
   const menu = document.getElementById('contextMenu');
@@ -42,11 +43,19 @@ export function initContextMenu() {
     }
   });
 
+  // 关闭节点及所有子节点
+  document.getElementById('ctxCloseWithChildren')?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    hideContextMenu();
+    if (_contextNode != null) await closeTabAndChildren(_contextNode);
+  });
+
 }
 
-export function showContextMenu(tabId, tabUrl, x, y) {
+export function showContextMenu(tabId, tabUrl, x, y, node) {
   _contextTabId = tabId;
   _contextTabUrl = tabUrl;
+  _contextNode = node ?? null;
 
   const menu = document.getElementById('contextMenu');
   if (!menu) return;

@@ -278,6 +278,10 @@
     "message": "选中该节点及所有子节点",
     "description": "选择按钮提示"
   },
+  "dragToReparent": {
+    "message": "拖拽到其他标签页下作为子节点",
+    "description": "拖拽按钮提示"
+  },
   "closeNode": {
     "message": "关闭该节点及所有子节点",
     "description": "关闭按钮提示（父节点）"
@@ -505,5 +509,9 @@
   "ctxCopyLink": {
     "message": "复制链接",
     "description": "右键菜单：复制标签页链接"
+  },
+  "ctxCloseWithChildren": {
+    "message": "关闭节点及所有子节点",
+    "description": "右键菜单：关闭当前标签页及其所有子节点"
   }
 }

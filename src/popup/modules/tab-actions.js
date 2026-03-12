@@ -73,43 +73,67 @@ export async function removeTabElements(tabIds) {
   }
 }
 
-// 关闭选中的标签页或当前节点及其子节点
-export async function closeSelectedOrCurrent(node) {
-  let tabsToClose = [];
-
-  if (state.selectedTabIds.size > 0) {
-    // 如果有选中的标签页，关闭所有选中的标签页
-    tabsToClose = Array.from(state.selectedTabIds);
-    // 清空选中状态
-    state.selectedTabIds.clear();
-  } else {
-    // 如果没有选中的标签页，关闭当前节点及其子节点
-    function collectTabIds(node) {
-      tabsToClose.push(node.id);
-      node.children.forEach(child => {
-        collectTabIds(child);
-      });
+// 关闭当前单个标签页，并将其子节点挂到当前节点的父节点下
+export async function closeSingleTabReparentChildren(node, parentTabId) {
+  // 先将所有子节点重新挂到祖父节点下（在关闭前操作，避免 onRemoved 清理子节点的父指针）
+  for (const child of node.children) {
+    try {
+      if (parentTabId != null) {
+        await chrome.runtime.sendMessage({
+          action: 'setTabParent',
+          childTabId: child.id,
+          parentTabId: parentTabId
+        });
+      }
+      // 如果没有祖父节点，onRemoved 触发时会自动清理子节点的父指针，子节点变为根节点
+    } catch (err) {
+      console.error('Error re-parenting child tab:', err);
     }
-    collectTabIds(node);
   }
 
-  // 通知后台脚本这些标签页是通过插件关闭的
+  // 只关闭当前节点
   try {
     await chrome.runtime.sendMessage({
       action: 'markPluginClosed',
-      tabIds: tabsToClose
+      tabIds: [node.id]
     });
   } catch (error) {
     console.error('Error notifying plugin close:', error);
   }
 
-  // 关闭标签页
   try {
-    await chrome.tabs.remove(tabsToClose);
-    // 从DOM中移除已关闭的标签页元素，避免刷新视图
-    await removeTabElements(tabsToClose);
+    await chrome.tabs.remove(node.id);
+    await removeTabElements([node.id]);
   } catch (error) {
-    console.warn('Error closing tabs:', error);
+    console.warn('Error closing tab:', error);
+  }
+}
+
+// 关闭选中的标签页，或仅关闭当前标签页并将子节点挂到其父节点下
+export async function closeSelectedOrCurrent(node, parentTabId) {
+  if (state.selectedTabIds.size > 0) {
+    // 有多选时：关闭所有选中的标签页（保留原有逻辑）
+    const tabsToClose = Array.from(state.selectedTabIds);
+    state.selectedTabIds.clear();
+
+    try {
+      await chrome.runtime.sendMessage({
+        action: 'markPluginClosed',
+        tabIds: tabsToClose
+      });
+    } catch (error) {
+      console.error('Error notifying plugin close:', error);
+    }
+
+    try {
+      await chrome.tabs.remove(tabsToClose);
+      await removeTabElements(tabsToClose);
+    } catch (error) {
+      console.warn('Error closing tabs:', error);
+    }
+  } else {
+    // 无多选时：只关闭当前节点，子节点上移到父节点
+    await closeSingleTabReparentChildren(node, parentTabId);
   }
 }
 

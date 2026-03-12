@@ -426,20 +426,73 @@
       await window.tabHistory.removeTabsFromHistory(tabIds);
     }
   }
-  async function closeSelectedOrCurrent(node) {
-    let tabsToClose = [];
-    if (state.selectedTabIds.size > 0) {
-      tabsToClose = Array.from(state.selectedTabIds);
-      state.selectedTabIds.clear();
-    } else {
-      let collectTabIds = function(node2) {
-        tabsToClose.push(node2.id);
-        node2.children.forEach((child) => {
-          collectTabIds(child);
-        });
-      };
-      collectTabIds(node);
+  async function closeSingleTabReparentChildren(node, parentTabId) {
+    for (const child of node.children) {
+      try {
+        if (parentTabId != null) {
+          await chrome.runtime.sendMessage({
+            action: "setTabParent",
+            childTabId: child.id,
+            parentTabId
+          });
+        }
+      } catch (err) {
+        console.error("Error re-parenting child tab:", err);
+      }
     }
+    try {
+      await chrome.runtime.sendMessage({
+        action: "markPluginClosed",
+        tabIds: [node.id]
+      });
+    } catch (error) {
+      console.error("Error notifying plugin close:", error);
+    }
+    try {
+      await chrome.tabs.remove(node.id);
+      await removeTabElements([node.id]);
+    } catch (error) {
+      console.warn("Error closing tab:", error);
+    }
+  }
+  async function closeSelectedOrCurrent(node, parentTabId) {
+    if (state.selectedTabIds.size > 0) {
+      const tabsToClose = Array.from(state.selectedTabIds);
+      state.selectedTabIds.clear();
+      try {
+        await chrome.runtime.sendMessage({
+          action: "markPluginClosed",
+          tabIds: tabsToClose
+        });
+      } catch (error) {
+        console.error("Error notifying plugin close:", error);
+      }
+      try {
+        await chrome.tabs.remove(tabsToClose);
+        await removeTabElements(tabsToClose);
+      } catch (error) {
+        console.warn("Error closing tabs:", error);
+      }
+    } else {
+      await closeSingleTabReparentChildren(node, parentTabId);
+    }
+  }
+  async function moveTabToNewWindow(tabId) {
+    try {
+      await chrome.windows.create({ tabId });
+    } catch (error) {
+      console.error("Error moving tab to new window:", error);
+    }
+  }
+  async function closeTabAndChildren(node) {
+    const tabsToClose = [];
+    function collectTabIds(node2) {
+      tabsToClose.push(node2.id);
+      node2.children.forEach((child) => {
+        collectTabIds(child);
+      });
+    }
+    collectTabIds(node);
     try {
       await chrome.runtime.sendMessage({
         action: "markPluginClosed",
@@ -452,20 +505,14 @@
       await chrome.tabs.remove(tabsToClose);
       await removeTabElements(tabsToClose);
     } catch (error) {
-      console.warn("Error closing tabs:", error);
-    }
-  }
-  async function moveTabToNewWindow(tabId) {
-    try {
-      await chrome.windows.create({ tabId });
-    } catch (error) {
-      console.error("Error moving tab to new window:", error);
+      console.error("Error closing tabs:", error);
     }
   }
 
   // src/popup/modules/context-menu.js
   var _contextTabId = null;
   var _contextTabUrl = null;
+  var _contextNode = null;
   function initContextMenu() {
     const menu = document.getElementById("contextMenu");
     if (!menu) return;
@@ -492,10 +539,16 @@
         }
       }
     });
+    document.getElementById("ctxCloseWithChildren")?.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      hideContextMenu();
+      if (_contextNode != null) await closeTabAndChildren(_contextNode);
+    });
   }
-  function showContextMenu(tabId, tabUrl, x, y) {
+  function showContextMenu(tabId, tabUrl, x, y, node) {
     _contextTabId = tabId;
     _contextTabUrl = tabUrl;
+    _contextNode = node ?? null;
     const menu = document.getElementById("contextMenu");
     if (!menu) return;
     menu.style.left = "0px";
@@ -521,6 +574,83 @@
   };
   function registerSearchHistorySaver(fn) {
     _saveSearchHistory = fn;
+  }
+  var _draggedTabId = null;
+  var _draggedNodeElement = null;
+  var _currentTabRelations = {};
+  function _readGutterInfo(nodeEl) {
+    const cols = Array.from(nodeEl.querySelectorAll(".tree-gutter > .tree-col"));
+    if (cols.length <= 1) return { depth: 0, parentLines: [], isLast: false };
+    const depth = cols.length - 1;
+    const parentLines = [];
+    for (let i = 0; i < depth - 1; i++) {
+      parentLines.push(cols[i].classList.contains("has-line"));
+    }
+    const junction = cols[depth - 1];
+    return { depth, parentLines, isLast: junction.classList.contains("is-last") };
+  }
+  function _rebuildGutter(nodeEl, depth, parentLines, isLast) {
+    const gutter = nodeEl.querySelector(".tree-gutter");
+    if (!gutter) return;
+    const iconCol = gutter.querySelector(".tree-icon-col");
+    Array.from(gutter.children).forEach((c) => {
+      if (!c.classList.contains("tree-icon-col")) c.remove();
+    });
+    gutter.style.setProperty("--depth", String(depth));
+    for (let i = 0; i < Math.max(0, depth - 1); i++) {
+      const col = document.createElement("div");
+      col.className = "tree-col";
+      if (parentLines[i]) col.classList.add("has-line");
+      gutter.insertBefore(col, iconCol);
+    }
+    if (depth > 0) {
+      const junction = document.createElement("div");
+      junction.className = "tree-col tree-junction";
+      junction.classList.add(isLast ? "is-last" : "is-tee");
+      gutter.insertBefore(junction, iconCol);
+    }
+  }
+  function _patchSubtreeGutter(node, depth, parentLines, isLast) {
+    const el = document.querySelector(`[data-tab-id="${node.id}"]`);
+    if (el) _rebuildGutter(el, depth, parentLines, isLast);
+    const childParentLines = [...parentLines];
+    if (depth > 0) childParentLines[depth - 1] = !isLast;
+    node.children.forEach((child, idx, arr) => {
+      _patchSubtreeGutter(child, depth + 1, childParentLines, idx === arr.length - 1);
+    });
+  }
+  function _patchChildrenGutterAfterClose(closedNode, parentTabId, closedGutterInfo) {
+    if (closedNode.children.length === 0) return true;
+    let childDepth, childParentLines;
+    if (parentTabId != null) {
+      const gpEl = document.querySelector(`[data-tab-id="${parentTabId}"]`);
+      if (!gpEl) return null;
+      const gpInfo = _readGutterInfo(gpEl);
+      childDepth = gpInfo.depth + 1;
+      childParentLines = [...gpInfo.parentLines];
+      if (gpInfo.depth > 0) childParentLines[gpInfo.depth - 1] = !gpInfo.isLast;
+    } else {
+      childDepth = 0;
+      childParentLines = [];
+    }
+    const numChildren = closedNode.children.length;
+    closedNode.children.forEach((child, idx) => {
+      const isLastChild = closedGutterInfo.isLast && idx === numChildren - 1;
+      _patchSubtreeGutter(child, childDepth, childParentLines, isLastChild);
+    });
+    return true;
+  }
+  function _isDescendant(targetId, ancestorId) {
+    let current = targetId;
+    const visited = /* @__PURE__ */ new Set();
+    while (current !== void 0 && current !== null) {
+      if (visited.has(current)) break;
+      visited.add(current);
+      const parent = _currentTabRelations[current];
+      if (parent === ancestorId) return true;
+      current = parent;
+    }
+    return false;
   }
   async function updateNavigationButtons() {
     if (!window.tabHistory) return;
@@ -634,6 +764,7 @@
       if (attempts >= maxAttempts) {
         console.warn("\u26A0\uFE0F Background may not be ready after maximum attempts, proceeding with empty relations");
       }
+      _currentTabRelations = tabRelations;
       console.log("\u{1F504} getTabRelations gets:", Object.keys(tabRelations).length);
       try {
         state.pinnedTabsCache = await chrome.runtime.sendMessage({ action: "getPinnedTabIdsCache" }) || {};
@@ -941,11 +1072,75 @@ ${node.url}`;
     nodeElement.appendChild(statusContainer);
     const actionsContainer = document.createElement("div");
     actionsContainer.className = "tree-actions";
+    const dragBtnContainer = document.createElement("div");
+    dragBtnContainer.className = "drag-btn-container";
+    const dragBtn = document.createElement("button");
+    dragBtn.className = "drag-btn";
+    dragBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="17" viewBox="0.5 0.5 7 11"><circle cx="2" cy="2" r="1.4" fill="currentColor"/><circle cx="6" cy="2" r="1.4" fill="currentColor"/><circle cx="2" cy="6" r="1.4" fill="currentColor"/><circle cx="6" cy="6" r="1.4" fill="currentColor"/><circle cx="2" cy="10" r="1.4" fill="currentColor"/><circle cx="6" cy="10" r="1.4" fill="currentColor"/></svg>';
+    dragBtn.title = i18n("dragToReparent") || "Drag to set as child";
+    const dragOverlay = document.createElement("div");
+    dragOverlay.className = "drag-btn-overlay";
+    dragOverlay.draggable = true;
+    dragOverlay.addEventListener("dragstart", (e) => {
+      e.stopPropagation();
+      _draggedTabId = node.id;
+      _draggedNodeElement = nodeElement;
+      nodeElement.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", String(node.id));
+    });
+    dragOverlay.addEventListener("dragend", () => {
+      if (_draggedNodeElement) {
+        _draggedNodeElement.classList.remove("dragging");
+      }
+      _draggedTabId = null;
+      _draggedNodeElement = null;
+      document.querySelectorAll(".drop-target").forEach((el) => el.classList.remove("drop-target"));
+    });
+    dragBtnContainer.appendChild(dragBtn);
+    dragBtnContainer.appendChild(dragOverlay);
+    nodeElement.addEventListener("dragover", (e) => {
+      if (_draggedTabId === null || _draggedTabId === node.id) return;
+      if (_isDescendant(node.id, _draggedTabId)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = "move";
+      document.querySelectorAll(".drop-target").forEach((el) => el.classList.remove("drop-target"));
+      nodeElement.classList.add("drop-target");
+    });
+    nodeElement.addEventListener("dragleave", (e) => {
+      if (!nodeElement.contains(e.relatedTarget)) {
+        nodeElement.classList.remove("drop-target");
+      }
+    });
+    nodeElement.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      nodeElement.classList.remove("drop-target");
+      const childTabId = _draggedTabId;
+      if (_draggedNodeElement) {
+        _draggedNodeElement.classList.remove("dragging");
+      }
+      _draggedTabId = null;
+      _draggedNodeElement = null;
+      if (childTabId === null || childTabId === node.id) return;
+      if (_isDescendant(node.id, childTabId)) return;
+      try {
+        await chrome.runtime.sendMessage({
+          action: "setTabParent",
+          childTabId,
+          parentTabId: node.id
+        });
+        await loadTabTree();
+      } catch (err) {
+        console.error("Error setting tab parent via drag:", err);
+      }
+    });
     const selectBtnContainer = document.createElement("div");
     selectBtnContainer.className = "select-btn-container";
     const selectBtn = document.createElement("button");
     selectBtn.className = "select-btn";
-    selectBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="12" viewBox="0 0 11 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,5 4,8.5 10,1.5"/></svg>';
+    selectBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" viewBox="0 0 11 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="0.5,5 4,9 10.5,1"/></svg>';
     selectBtn.title = i18n("selectNode");
     const selectOverlay = document.createElement("div");
     selectOverlay.className = "select-btn-overlay";
@@ -963,10 +1158,10 @@ ${node.url}`;
     pinIcon.className = "pin-icon";
     const isPinnedForButton = state.pinnedTabsCache && state.pinnedTabsCache[node.id];
     if (isPinnedForButton) {
-      pinIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="12" viewBox="0 0 11 12"><path fill="currentColor" d="M5.5,0.5 L9,4.5 L5.5,8 L2,4.5 Z"/><line x1="5.5" y1="8" x2="5.5" y2="11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+      pinIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 0.5 7 11"><path fill="currentColor" d="M5.5,0.5 L9,4.5 L5.5,8 L2,4.5 Z"/><line x1="5.5" y1="8" x2="5.5" y2="11.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>';
       pinBtn.title = i18n("unpinFromTop") || "Unpin from top";
     } else {
-      pinIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5.5" y1="9" x2="5.5" y2="3"/><polyline points="2.5,5.5 5.5,2.5 8.5,5.5"/><line x1="2" y1="9.5" x2="9" y2="9.5"/></svg>';
+      pinIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 2 7 8.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><line x1="5.5" y1="9" x2="5.5" y2="3"/><polyline points="2.5,5.5 5.5,2.5 8.5,5.5"/><line x1="2" y1="9.5" x2="9" y2="9.5"/></svg>';
       pinBtn.title = i18n("pinToTop") || "Pin to top";
     }
     pinBtn.appendChild(pinIcon);
@@ -1013,30 +1208,38 @@ ${node.url}`;
     closeBtnContainer.className = "close-btn-container";
     const closeBtn = document.createElement("button");
     closeBtn.className = "close-btn";
-    closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/></svg>';
+    closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="1.5 1.5 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1.5" y1="1.5" x2="8.5" y2="8.5"/><line x1="8.5" y1="1.5" x2="1.5" y2="8.5"/></svg>';
     const closeOverlay = document.createElement("div");
     closeOverlay.className = "close-btn-overlay";
-    closeOverlay.addEventListener("click", (e) => {
+    closeOverlay.addEventListener("click", async (e) => {
       e.stopPropagation();
-      closeSelectedOrCurrent(node);
+      const parentTabId = _currentTabRelations[node.id] ?? null;
+      const closedEl = document.querySelector(`[data-tab-id="${node.id}"]`);
+      const closedGutterInfo = closedEl ? _readGutterInfo(closedEl) : null;
+      await closeSelectedOrCurrent(node, parentTabId);
+      if (closedGutterInfo && node.children.length > 0) {
+        const ok = _patchChildrenGutterAfterClose(node, parentTabId, closedGutterInfo);
+        if (ok === null) await loadTabTree();
+      }
     });
     closeOverlay.addEventListener("mouseenter", () => {
       if (state.selectedTabIds.size > 0) {
         closeBtn.title = i18n("closeSelectedTabs", [state.selectedTabIds.size.toString()]);
       } else {
-        closeBtn.title = i18n("closeNode");
+        closeBtn.title = i18n("closeTab") || "Close tab";
       }
     });
     closeBtnContainer.appendChild(closeBtn);
     closeBtnContainer.appendChild(closeOverlay);
-    actionsContainer.appendChild(selectBtnContainer);
+    actionsContainer.appendChild(dragBtnContainer);
     actionsContainer.appendChild(pinBtnContainer);
+    actionsContainer.appendChild(selectBtnContainer);
     actionsContainer.appendChild(closeBtnContainer);
     nodeElement.appendChild(actionsContainer);
     nodeElement.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      showContextMenu(node.id, node.url || "", e.clientX, e.clientY);
+      showContextMenu(node.id, node.url || "", e.clientX, e.clientY, node);
     });
     nodeElement.addEventListener("click", async (e) => {
       e.stopPropagation();

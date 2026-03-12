@@ -1350,6 +1350,18 @@
           } catch (e) {
             sendResponse({ success: false });
           }
+        } else if (request.action === "setTabParent") {
+          if (request.childTabId && request.parentTabId) {
+            try {
+              await setTabParent(parseInt(request.childTabId), parseInt(request.parentTabId));
+              sendResponse({ success: true });
+            } catch (e) {
+              console.error("Error setting tab parent via message:", e);
+              sendResponse({ success: false, error: e?.message || String(e) });
+            }
+          } else {
+            sendResponse({ success: false, error: "childTabId and parentTabId required" });
+          }
         }
       } catch (error) {
         console.error("Error handling message:", error);

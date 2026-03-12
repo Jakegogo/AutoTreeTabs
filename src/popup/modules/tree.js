@@ -15,6 +15,106 @@ export function registerSearchHistorySaver(fn) {
   _saveSearchHistory = fn;
 }
 
+// 拖拽状态（模块级，跨节点共享）
+let _draggedTabId = null;
+let _draggedNodeElement = null;
+let _currentTabRelations = {};
+
+// ── Gutter patch helpers（关闭节点后局部更新，避免全量刷新闪屏）──────────
+
+// 读取节点 gutter 的 depth / parentLines / isLast
+function _readGutterInfo(nodeEl) {
+  const cols = Array.from(nodeEl.querySelectorAll('.tree-gutter > .tree-col'));
+  if (cols.length <= 1) return { depth: 0, parentLines: [], isLast: false };
+  const depth = cols.length - 1; // 去掉 icon-col
+  const parentLines = [];
+  for (let i = 0; i < depth - 1; i++) {
+    parentLines.push(cols[i].classList.contains('has-line'));
+  }
+  const junction = cols[depth - 1]; // junction 是 icon-col 之前的那个 col
+  return { depth, parentLines, isLast: junction.classList.contains('is-last') };
+}
+
+// 重建节点的 gutter（depth / parentLines / isLast 发生变化时调用）
+function _rebuildGutter(nodeEl, depth, parentLines, isLast) {
+  const gutter = nodeEl.querySelector('.tree-gutter');
+  if (!gutter) return;
+  const iconCol = gutter.querySelector('.tree-icon-col');
+  Array.from(gutter.children).forEach(c => {
+    if (!c.classList.contains('tree-icon-col')) c.remove();
+  });
+  gutter.style.setProperty('--depth', String(depth));
+  for (let i = 0; i < Math.max(0, depth - 1); i++) {
+    const col = document.createElement('div');
+    col.className = 'tree-col';
+    if (parentLines[i]) col.classList.add('has-line');
+    gutter.insertBefore(col, iconCol);
+  }
+  if (depth > 0) {
+    const junction = document.createElement('div');
+    junction.className = 'tree-col tree-junction';
+    junction.classList.add(isLast ? 'is-last' : 'is-tee');
+    gutter.insertBefore(junction, iconCol);
+  }
+}
+
+// 递归更新子树所有节点的 gutter
+function _patchSubtreeGutter(node, depth, parentLines, isLast) {
+  const el = document.querySelector(`[data-tab-id="${node.id}"]`);
+  if (el) _rebuildGutter(el, depth, parentLines, isLast);
+  const childParentLines = [...parentLines];
+  if (depth > 0) childParentLines[depth - 1] = !isLast;
+  node.children.forEach((child, idx, arr) => {
+    _patchSubtreeGutter(child, depth + 1, childParentLines, idx === arr.length - 1);
+  });
+}
+
+// 关闭节点后，局部 patch 其子节点的 gutter（closed 节点此时已从 DOM 移除）
+// 返回 true 表示成功；返回 null 表示需要回退到 loadTabTree()
+function _patchChildrenGutterAfterClose(closedNode, parentTabId, closedGutterInfo) {
+  if (closedNode.children.length === 0) return true; // 无子节点，无需 patch
+
+  let childDepth, childParentLines;
+
+  if (parentTabId != null) {
+    const gpEl = document.querySelector(`[data-tab-id="${parentTabId}"]`);
+    if (!gpEl) return null; // 祖父节点不在 DOM 中，回退到全量刷新
+    const gpInfo = _readGutterInfo(gpEl);
+    childDepth = gpInfo.depth + 1; // 与 closed 节点原深度相同
+    // 与 renderNode 处理子节点时计算 newParentLines 的逻辑完全一致
+    childParentLines = [...gpInfo.parentLines];
+    if (gpInfo.depth > 0) childParentLines[gpInfo.depth - 1] = !gpInfo.isLast;
+  } else {
+    // 无祖父：子节点提升为根节点
+    childDepth = 0;
+    childParentLines = [];
+  }
+
+  const numChildren = closedNode.children.length;
+  closedNode.children.forEach((child, idx) => {
+    // 只有 closed 节点原本是最后一个子节点，且当前 child 也是最后一个，才继承 isLast
+    const isLastChild = closedGutterInfo.isLast && (idx === numChildren - 1);
+    _patchSubtreeGutter(child, childDepth, childParentLines, isLastChild);
+  });
+  return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 检查 targetId 是否是 ancestorId 的后代（防止循环依赖）
+function _isDescendant(targetId, ancestorId) {
+  let current = targetId;
+  const visited = new Set();
+  while (current !== undefined && current !== null) {
+    if (visited.has(current)) break; // 防止死循环
+    visited.add(current);
+    const parent = _currentTabRelations[current];
+    if (parent === ancestorId) return true;
+    current = parent;
+  }
+  return false;
+}
+
 // 更新导航按钮状态（单次 getHistoryData 调用，避免多次后台通信）
 export async function updateNavigationButtons() {
   if (!window.tabHistory) return;
@@ -149,6 +249,7 @@ export async function loadTabTree() {
       console.warn('⚠️ Background may not be ready after maximum attempts, proceeding with empty relations');
     }
 
+    _currentTabRelations = tabRelations;
     console.log('🔄 getTabRelations gets:', Object.keys(tabRelations).length);
 
     // 一次性获取所有置顶标签页数据
@@ -531,13 +632,92 @@ export function renderNode(node, container, depth, parentLines = [], isLast = fa
   const actionsContainer = document.createElement('div');
   actionsContainer.className = 'tree-actions';
 
+  // 拖拽按钮容器
+  const dragBtnContainer = document.createElement('div');
+  dragBtnContainer.className = 'drag-btn-container';
+
+  const dragBtn = document.createElement('button');
+  dragBtn.className = 'drag-btn';
+  dragBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="17" viewBox="0.5 0.5 7 11"><circle cx="2" cy="2" r="1.4" fill="currentColor"/><circle cx="6" cy="2" r="1.4" fill="currentColor"/><circle cx="2" cy="6" r="1.4" fill="currentColor"/><circle cx="6" cy="6" r="1.4" fill="currentColor"/><circle cx="2" cy="10" r="1.4" fill="currentColor"/><circle cx="6" cy="10" r="1.4" fill="currentColor"/></svg>';
+  dragBtn.title = i18n('dragToReparent') || 'Drag to set as child';
+
+  const dragOverlay = document.createElement('div');
+  dragOverlay.className = 'drag-btn-overlay';
+  dragOverlay.draggable = true;
+
+  dragOverlay.addEventListener('dragstart', (e) => {
+    e.stopPropagation();
+    _draggedTabId = node.id;
+    _draggedNodeElement = nodeElement;
+    nodeElement.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(node.id));
+  });
+
+  dragOverlay.addEventListener('dragend', () => {
+    if (_draggedNodeElement) {
+      _draggedNodeElement.classList.remove('dragging');
+    }
+    _draggedTabId = null;
+    _draggedNodeElement = null;
+    document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+  });
+
+  dragBtnContainer.appendChild(dragBtn);
+  dragBtnContainer.appendChild(dragOverlay);
+
+  // 当前节点作为拖拽目标：dragover / dragleave / drop
+  nodeElement.addEventListener('dragover', (e) => {
+    if (_draggedTabId === null || _draggedTabId === node.id) return;
+    if (_isDescendant(node.id, _draggedTabId)) return; // 防止循环
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+    nodeElement.classList.add('drop-target');
+  });
+
+  nodeElement.addEventListener('dragleave', (e) => {
+    // 只在真正离开当前节点时移除（排除进入子元素的 dragleave）
+    if (!nodeElement.contains(e.relatedTarget)) {
+      nodeElement.classList.remove('drop-target');
+    }
+  });
+
+  nodeElement.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    nodeElement.classList.remove('drop-target');
+
+    const childTabId = _draggedTabId;
+    if (_draggedNodeElement) {
+      _draggedNodeElement.classList.remove('dragging');
+    }
+    _draggedTabId = null;
+    _draggedNodeElement = null;
+
+    if (childTabId === null || childTabId === node.id) return;
+    if (_isDescendant(node.id, childTabId)) return;
+
+    try {
+      await chrome.runtime.sendMessage({
+        action: 'setTabParent',
+        childTabId,
+        parentTabId: node.id
+      });
+      await loadTabTree();
+    } catch (err) {
+      console.error('Error setting tab parent via drag:', err);
+    }
+  });
+
   // 选择按钮容器
   const selectBtnContainer = document.createElement('div');
   selectBtnContainer.className = 'select-btn-container';
 
   const selectBtn = document.createElement('button');
   selectBtn.className = 'select-btn';
-  selectBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="12" viewBox="0 0 11 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,5 4,8.5 10,1.5"/></svg>';
+  selectBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="15" viewBox="0 0 11 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="0.5,5 4,9 10.5,1"/></svg>';
   selectBtn.title = i18n('selectNode');
 
   const selectOverlay = document.createElement('div');
@@ -562,11 +742,11 @@ export function renderNode(node, container, depth, parentLines = [], isLast = fa
   const isPinnedForButton = state.pinnedTabsCache && state.pinnedTabsCache[node.id];
   if (isPinnedForButton) {
     // 已置顶：实心菱形图钉，表示"点击取消置顶"
-    pinIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="12" viewBox="0 0 11 12"><path fill="currentColor" d="M5.5,0.5 L9,4.5 L5.5,8 L2,4.5 Z"/><line x1="5.5" y1="8" x2="5.5" y2="11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+    pinIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 0.5 7 11"><path fill="currentColor" d="M5.5,0.5 L9,4.5 L5.5,8 L2,4.5 Z"/><line x1="5.5" y1="8" x2="5.5" y2="11.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>';
     pinBtn.title = i18n('unpinFromTop') || 'Unpin from top';
   } else {
     // 未置顶：向上箭头+底线，表示"置顶"
-    pinIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5.5" y1="9" x2="5.5" y2="3"/><polyline points="2.5,5.5 5.5,2.5 8.5,5.5"/><line x1="2" y1="9.5" x2="9" y2="9.5"/></svg>';
+    pinIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 2 7 8.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><line x1="5.5" y1="9" x2="5.5" y2="3"/><polyline points="2.5,5.5 5.5,2.5 8.5,5.5"/><line x1="2" y1="9.5" x2="9" y2="9.5"/></svg>';
     pinBtn.title = i18n('pinToTop') || 'Pin to top';
   }
 
@@ -624,28 +804,38 @@ export function renderNode(node, container, depth, parentLines = [], isLast = fa
 
   const closeBtn = document.createElement('button');
   closeBtn.className = 'close-btn';
-  closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/></svg>';
+  closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="1.5 1.5 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1.5" y1="1.5" x2="8.5" y2="8.5"/><line x1="8.5" y1="1.5" x2="1.5" y2="8.5"/></svg>';
 
   const closeOverlay = document.createElement('div');
   closeOverlay.className = 'close-btn-overlay';
-  closeOverlay.addEventListener('click', (e) => {
+  closeOverlay.addEventListener('click', async (e) => {
     e.stopPropagation();
-    closeSelectedOrCurrent(node);
+    const parentTabId = _currentTabRelations[node.id] ?? null;
+    // 关闭前读取 gutter 信息（关闭后 DOM 元素已移除）
+    const closedEl = document.querySelector(`[data-tab-id="${node.id}"]`);
+    const closedGutterInfo = closedEl ? _readGutterInfo(closedEl) : null;
+    await closeSelectedOrCurrent(node, parentTabId);
+    // 局部 patch 子节点 gutter，避免全量刷新闪屏
+    if (closedGutterInfo && node.children.length > 0) {
+      const ok = _patchChildrenGutterAfterClose(node, parentTabId, closedGutterInfo);
+      if (ok === null) await loadTabTree(); // 回退：祖父节点不在 DOM
+    }
   });
 
   closeOverlay.addEventListener('mouseenter', () => {
     if (state.selectedTabIds.size > 0) {
       closeBtn.title = i18n('closeSelectedTabs', [state.selectedTabIds.size.toString()]);
     } else {
-      closeBtn.title = i18n('closeNode');
+      closeBtn.title = i18n('closeTab') || 'Close tab';
     }
   });
 
   closeBtnContainer.appendChild(closeBtn);
   closeBtnContainer.appendChild(closeOverlay);
 
-  actionsContainer.appendChild(selectBtnContainer);
+  actionsContainer.appendChild(dragBtnContainer);
   actionsContainer.appendChild(pinBtnContainer);
+  actionsContainer.appendChild(selectBtnContainer);
   actionsContainer.appendChild(closeBtnContainer);
 
   nodeElement.appendChild(actionsContainer);
@@ -654,7 +844,7 @@ export function renderNode(node, container, depth, parentLines = [], isLast = fa
   nodeElement.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    showContextMenu(node.id, node.url || '', e.clientX, e.clientY);
+    showContextMenu(node.id, node.url || '', e.clientX, e.clientY, node);
   });
 
   // 点击节点事件

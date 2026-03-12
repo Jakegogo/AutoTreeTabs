@@ -370,6 +370,10 @@
     "message": "Select this node and all child nodes",
     "description": "Select button tooltip"
   },
+  "dragToReparent": {
+    "message": "Drag to move under another tab as a child",
+    "description": "Drag handle button tooltip"
+  },
   "closeNode": {
     "message": "Close this node and all child nodes",
     "description": "Close button tooltip for parent node"
@@ -505,5 +509,9 @@
   "ctxCopyLink": {
     "message": "Copy Link",
     "description": "Context menu: copy tab URL to clipboard"
+  },
+  "ctxCloseWithChildren": {
+    "message": "Close Node and All Children",
+    "description": "Context menu: close current tab and all its child tabs"
   }
 }
