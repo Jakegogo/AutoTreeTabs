@@ -344,6 +344,15 @@ function generateHTML(tree, pinnedTabsCache = null, i18nMessages = {}) {
       .tree-title { color: #64b5f6; }
     }
 
+    .tab-open-time {
+      font-size: 10px;
+      color: var(--text-color);
+      opacity: 0.4;
+      flex-shrink: 0;
+      margin-left: 6px;
+      white-space: nowrap;
+    }
+
     .tab-status {
       margin-left: 4px;
       font-size: 14px;
@@ -587,6 +596,27 @@ function collectAllUrls(tree) {
   return urls;
 }
 
+// 格式化标签页打开时间（相对时间显示）
+function formatTabOpenTime(timestamp) {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return '刚刚';
+  if (diffMins < 60) return `${diffMins}分钟前`;
+  if (diffHours < 24) return `${diffHours}小时前`;
+  if (diffDays < 7) return `${diffDays}天前`;
+  const m = date.getMonth() + 1;
+  const d = date.getDate();
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  return `${m}/${d} ${hh}:${mm}`;
+}
+
 // 生成树形HTML结构
 function generateTreeHTML(nodes, depth = 0, parentLines = [], pinnedTabsCache = null, i18nMessages = {}) {
   if (depth === 0) {
@@ -648,6 +678,13 @@ function generateTreeHTML(nodes, depth = 0, parentLines = [], pinnedTabsCache = 
     const isPinned = pinnedTabsCache && pinnedTabsCache[node.id];
     const pinnedClass = isPinned ? ' pinned-tab' : '';
 
+    // 标签页打开时间（使用 lastAccessed，Chrome Tab API 提供）
+    const openTimeText = formatTabOpenTime(node.lastAccessed);
+    const openTimeAbsolute = node.lastAccessed ? new Date(node.lastAccessed).toLocaleString() : '';
+    const openTimeHtml = openTimeText
+      ? `<span class="tab-open-time" title="${openTimeAbsolute}">${openTimeText}</span>`
+      : '';
+
     // 图标列放在 gutter 内（与 popup renderNode 结构一致）
     gutterHtml += `<span class="tree-col tree-icon-col"><img class="tree-icon" src="${escapedFavIcon}" onerror="this.style.display=&quot;none&quot;"></span></span>`;
 
@@ -657,6 +694,7 @@ function generateTreeHTML(nodes, depth = 0, parentLines = [], pinnedTabsCache = 
         <a class="tree-title" href="#" onclick="openTab(&quot;${escapedUrl}&quot;); return false;">${escapedTitle}</a>
         ${statusIcon}
         ${openAllButton}
+        ${openTimeHtml}
       </div>
     `;
 
