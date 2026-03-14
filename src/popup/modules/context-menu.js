@@ -43,6 +43,30 @@ export function initContextMenu() {
     }
   });
 
+  // 该网站只打开一个标签 - 勾选/取消
+  document.getElementById('ctxSingleTab')?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    hideContextMenu();
+    if (!_contextTabUrl) return;
+    const checkEl = document.getElementById('ctxSingleTabCheck');
+    const isChecked = checkEl?.textContent === '✓';
+    if (isChecked) {
+      // 取消规则：找到规则 id 并删除
+      try {
+        const result = await chrome.runtime.sendMessage({ action: 'matchSingleTabRule', url: _contextTabUrl });
+        if (result?.matched && result.ruleId) {
+          await chrome.runtime.sendMessage({ action: 'removeSingleTabRule', id: result.ruleId });
+        }
+      } catch {}
+    } else {
+      // 添加规则：以主机名为默认 pattern
+      try {
+        const pattern = new URL(_contextTabUrl).host; // host 含非标准端口，如 localhost:3000
+        await chrome.runtime.sendMessage({ action: 'addSingleTabRule', pattern });
+      } catch {}
+    }
+  });
+
   // 关闭节点及所有子节点
   document.getElementById('ctxCloseWithChildren')?.addEventListener('click', async (e) => {
     e.stopPropagation();
@@ -60,6 +84,19 @@ export function showContextMenu(tabId, tabUrl, x, y, node) {
   const menu = document.getElementById('contextMenu');
   if (!menu) return;
 
+  // 重置单标签勾选状态（先清空，异步查询后更新）
+  const checkEl = document.getElementById('ctxSingleTabCheck');
+  const singleTabItem = document.getElementById('ctxSingleTab');
+  if (checkEl) checkEl.textContent = '';
+
+  // 仅对 http/https 页面显示单标签菜单项
+  if (singleTabItem) {
+    const isHttp = tabUrl && (tabUrl.startsWith('http://') || tabUrl.startsWith('https://'));
+    singleTabItem.style.display = isHttp ? '' : 'none';
+    const sep = singleTabItem.previousElementSibling;
+    if (sep && sep.classList.contains('context-menu-separator')) sep.style.display = isHttp ? '' : 'none';
+  }
+
   // 先临时显示以便测量实际尺寸
   menu.style.left = '0px';
   menu.style.top = '0px';
@@ -76,6 +113,13 @@ export function showContextMenu(tabId, tabUrl, x, y, node) {
 
   menu.style.left = Math.max(0, left) + 'px';
   menu.style.top = Math.max(0, top) + 'px';
+
+  // 异步查询单标签规则状态
+  if (tabUrl && (tabUrl.startsWith('http://') || tabUrl.startsWith('https://'))) {
+    chrome.runtime.sendMessage({ action: 'matchSingleTabRule', url: tabUrl }).then(result => {
+      if (checkEl) checkEl.textContent = result?.matched ? '✓' : '';
+    }).catch(() => {});
+  }
 }
 
 function hideContextMenu() {

@@ -5,6 +5,7 @@ import { SettingsCache } from './SettingsCache.js';
 import { DelayedMergeExecutor } from './DelayedMergeExecutor.js';
 import { TabTreePersistentStorage } from './TabTreePersistentStorage.js';
 import { PinnedTabPersistentStorage } from './PinnedTabPersistentStorage.js';
+import { SingleTabRuleManager } from './SingleTabRuleManager.js';
 
 // 1. 无外部依赖的基础实例
 export const storageManager = new StorageManager();
@@ -17,3 +18,6 @@ export const pinnedTabStorage = new PinnedTabPersistentStorage(storageManager);
 
 // 3. 晚绑定：storageManager 现在可以访问 persistentStorage / pinnedTabStorage
 storageManager.init(persistentStorage, pinnedTabStorage);
+
+// 4. 单标签规则管理器（无外部依赖）
+export const singleTabRuleManager = new SingleTabRuleManager();

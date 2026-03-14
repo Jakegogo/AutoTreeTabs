@@ -308,6 +308,22 @@
       </div>
     </div>
 
+    <!-- 单标签规则 -->
+    <div class="card">
+      <h2>🔒 单标签规则</h2>
+      <p style="opacity:0.8;margin:0 0 16px;">设置后，同一网站只保留一个标签页。支持通配符 <code>*</code>，可精确到任意路径层级。<br>示例：<code>github.com</code> / <code>*.google.com</code> / <code>github.com/orgs/*</code></p>
+
+      <div id="singleTabRulesList" style="margin-bottom:12px;"></div>
+
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="newRulePattern"
+          placeholder="输入 pattern，如 github.com 或 *.google.com"
+          style="flex:1;padding:8px 12px;border:1px solid var(--border-color);border-radius:4px;
+                 background:var(--bg-color);color:var(--text-color);font-size:14px;outline:none;">
+        <button class="button button-primary" id="addSingleTabRuleBtn">添加规则</button>
+      </div>
+    </div>
+
     <!-- 数据管理 -->
     <div class="card danger-zone">
       <h2 data-i18n="dataMgmtTitle">🗑️ Data Management</h2>
@@ -408,6 +424,69 @@
       .slider {
         background-color: #666;
       }
+    }
+
+    /* 单标签规则列表 */
+    .rule-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .rule-item:last-child { border-bottom: none; }
+    .rule-pattern {
+      flex: 1;
+      font-family: monospace;
+      font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .rule-pattern-input {
+      flex: 1;
+      padding: 4px 8px;
+      border: 1px solid var(--button-primary);
+      border-radius: 4px;
+      background: var(--bg-color);
+      color: var(--text-color);
+      font-family: monospace;
+      font-size: 14px;
+      outline: none;
+    }
+    .rule-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    .btn-sm {
+      padding: 4px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .btn-sm-edit { background: var(--button-primary); color: white; }
+    .btn-sm-edit:hover { background: var(--button-primary-hover); }
+    .btn-sm-save { background: #4CAF50; color: white; }
+    .btn-sm-save:hover { background: #388e3c; }
+    .btn-sm-cancel { background: var(--border-color); color: var(--text-color); }
+    .btn-sm-cancel:hover { opacity: 0.8; }
+    .btn-sm-delete { background: var(--button-danger); color: white; }
+    .btn-sm-delete:hover { background: var(--button-danger-hover); }
+    .rules-empty {
+      text-align: center;
+      opacity: 0.5;
+      padding: 16px 0;
+      font-size: 14px;
+    }
+    code {
+      background: var(--hover-bg, #f0f0f0);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+    @media (prefers-color-scheme: dark) {
+      code { background: rgba(255,255,255,0.08); }
     }
   </style>
 

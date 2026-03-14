@@ -799,6 +799,96 @@
     }
   };
 
+  // src/background/SingleTabRuleManager.js
+  var STORAGE_KEY = "singleTabRules";
+  var SingleTabRuleManager = class {
+    /** 从 storage 加载规则列表 */
+    async getRules() {
+      const result = await chrome.storage.local.get([STORAGE_KEY]);
+      return result[STORAGE_KEY] || [];
+    }
+    /** 保存规则列表到 storage */
+    async _saveRules(rules) {
+      await chrome.storage.local.set({ [STORAGE_KEY]: rules });
+    }
+    /** 添加规则，返回 true 成功 / false 已存在 */
+    async addRule(pattern) {
+      const rules = await this.getRules();
+      if (rules.some((r) => r.pattern === pattern)) return false;
+      rules.push({
+        id: `r_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        pattern,
+        enabled: true,
+        createdAt: Date.now()
+      });
+      await this._saveRules(rules);
+      return true;
+    }
+    /** 删除规则 */
+    async removeRule(id) {
+      const rules = await this.getRules();
+      const next = rules.filter((r) => r.id !== id);
+      if (next.length === rules.length) return false;
+      await this._saveRules(next);
+      return true;
+    }
+    /** 更新规则（部分字段） */
+    async updateRule(id, patch) {
+      const rules = await this.getRules();
+      const idx = rules.findIndex((r) => r.id === id);
+      if (idx === -1) return false;
+      rules[idx] = { ...rules[idx], ...patch };
+      await this._saveRules(rules);
+      return true;
+    }
+    /** 从 URL 提取默认 pattern（主机名，含非标准端口） */
+    static extractDefaultPattern(url) {
+      try {
+        return new URL(url).host;
+      } catch {
+        return null;
+      }
+    }
+    /**
+     * 检查 URL 是否匹配任意已启用规则
+     * @param {string} url
+     * @param {Array} [rules] 可选预加载的规则数组，减少重复 storage 查询
+     * @returns 匹配到的规则对象，或 null
+     */
+    matchUrlToRule(url, rules) {
+      if (!Array.isArray(rules)) return null;
+      for (const rule of rules) {
+        if (!rule.enabled) continue;
+        if (this.matchPattern(rule.pattern, url)) return rule;
+      }
+      return null;
+    }
+    /** 检查 URL 是否匹配指定 pattern */
+    matchPattern(pattern, url) {
+      try {
+        if (!url.startsWith("http://") && !url.startsWith("https://")) return false;
+        const urlObj = new URL(url);
+        const urlHost = urlObj.host;
+        if (pattern.includes("/")) {
+          const slashIdx = pattern.indexOf("/");
+          const patternHost = pattern.slice(0, slashIdx);
+          const patternPath = pattern.slice(slashIdx);
+          const pathPrefix = patternPath.replace(/\*.*$/, "");
+          return this._matchGlob(patternHost, urlHost) && urlObj.pathname.startsWith(pathPrefix);
+        } else {
+          return this._matchGlob(pattern, urlHost);
+        }
+      } catch {
+        return false;
+      }
+    }
+    /** glob 通配符匹配（* 匹配任意字符序列） */
+    _matchGlob(pattern, str) {
+      const regexStr = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+      return new RegExp(`^${regexStr}$`).test(str);
+    }
+  };
+
   // src/background/instances.js
   var storageManager = new StorageManager();
   var settingsCache = new SettingsCache();
@@ -806,6 +896,7 @@
   var persistentStorage = new TabTreePersistentStorage(storageManager, settingsCache);
   var pinnedTabStorage = new PinnedTabPersistentStorage(storageManager);
   storageManager.init(persistentStorage, pinnedTabStorage);
+  var singleTabRuleManager = new SingleTabRuleManager();
 
   // src/background/AutoBackTrack.js
   var tabIndexSnapshot = /* @__PURE__ */ new Map();
@@ -1137,6 +1228,64 @@
       await injectContentScript(tabId);
     }
   });
+  var SESSION_NEW_TABS_KEY = "singleTabNewTabs";
+  async function markTabAsNew(tabId) {
+    try {
+      const result = await chrome.storage.session.get([SESSION_NEW_TABS_KEY]);
+      const map = result[SESSION_NEW_TABS_KEY] || {};
+      map[tabId] = Date.now();
+      await chrome.storage.session.set({ [SESSION_NEW_TABS_KEY]: map });
+    } catch {
+    }
+  }
+  async function consumeNewTabMark(tabId) {
+    try {
+      const result = await chrome.storage.session.get([SESSION_NEW_TABS_KEY]);
+      const map = result[SESSION_NEW_TABS_KEY] || {};
+      const createdAt = map[tabId];
+      if (!createdAt) return false;
+      if (Date.now() - createdAt > 6e4) {
+        delete map[tabId];
+        await chrome.storage.session.set({ [SESSION_NEW_TABS_KEY]: map });
+        return false;
+      }
+      delete map[tabId];
+      await chrome.storage.session.set({ [SESSION_NEW_TABS_KEY]: map });
+      return true;
+    } catch {
+    }
+    return false;
+  }
+  chrome.tabs.onCreated.addListener((tab) => {
+    markTabAsNew(tab.id);
+  });
+  chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+    if (!changeInfo.url) return;
+    const url = changeInfo.url;
+    if (!url.startsWith("http://") && !url.startsWith("https://")) return;
+    const isNewTab = await consumeNewTabMark(tabId);
+    if (!isNewTab) return;
+    try {
+      const rules = await singleTabRuleManager.getRules();
+      const matchedRule = singleTabRuleManager.matchUrlToRule(url, rules);
+      if (!matchedRule) return;
+      const allTabs = await chrome.tabs.query({});
+      const existingTab = allTabs.find((t) => {
+        if (t.id === tabId) return false;
+        const tUrl = t.url || t.pendingUrl || "";
+        return singleTabRuleManager.matchPattern(matchedRule.pattern, tUrl);
+      });
+      if (existingTab) {
+        console.log(`\u{1F512} \u5355\u6807\u7B7E\u89C4\u5219 "${matchedRule.pattern}"\uFF1A\u5173\u95ED\u91CD\u590D\u6807\u7B7E ${tabId}\uFF0C\u8DF3\u8F6C\u5230 ${existingTab.id}`);
+        pluginClosedTabs.add(tabId);
+        await chrome.tabs.update(existingTab.id, { active: true });
+        await chrome.windows.update(existingTab.windowId, { focused: true });
+        await chrome.tabs.remove(tabId);
+      }
+    } catch (error) {
+      console.error("Error in single-tab dedup:", error);
+    }
+  });
   async function updateChildRelationsForUpdatedParent(parentTabId, updatedParentTab) {
     try {
       const tabRelations = await storageManager.getTabRelationsSync() || {};
@@ -1361,6 +1510,37 @@
             }
           } else {
             sendResponse({ success: false, error: "childTabId and parentTabId required" });
+          }
+        } else if (request.action === "getSingleTabRules") {
+          sendResponse(await singleTabRuleManager.getRules());
+        } else if (request.action === "addSingleTabRule") {
+          if (request.pattern) {
+            const ok = await singleTabRuleManager.addRule(request.pattern);
+            sendResponse({ success: ok });
+          } else {
+            sendResponse({ success: false, error: "pattern required" });
+          }
+        } else if (request.action === "removeSingleTabRule") {
+          if (request.id) {
+            const ok = await singleTabRuleManager.removeRule(request.id);
+            sendResponse({ success: ok });
+          } else {
+            sendResponse({ success: false, error: "id required" });
+          }
+        } else if (request.action === "updateSingleTabRule") {
+          if (request.id && request.patch) {
+            const ok = await singleTabRuleManager.updateRule(request.id, request.patch);
+            sendResponse({ success: ok });
+          } else {
+            sendResponse({ success: false, error: "id and patch required" });
+          }
+        } else if (request.action === "matchSingleTabRule") {
+          if (request.url) {
+            const rules = await singleTabRuleManager.getRules();
+            const rule = singleTabRuleManager.matchUrlToRule(request.url, rules);
+            sendResponse(rule ? { matched: true, ruleId: rule.id, pattern: rule.pattern } : { matched: false });
+          } else {
+            sendResponse({ matched: false });
           }
         }
       } catch (error) {

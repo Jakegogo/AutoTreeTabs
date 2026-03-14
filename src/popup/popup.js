@@ -539,6 +539,28 @@
         }
       }
     });
+    document.getElementById("ctxSingleTab")?.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      hideContextMenu();
+      if (!_contextTabUrl) return;
+      const checkEl = document.getElementById("ctxSingleTabCheck");
+      const isChecked = checkEl?.textContent === "\u2713";
+      if (isChecked) {
+        try {
+          const result = await chrome.runtime.sendMessage({ action: "matchSingleTabRule", url: _contextTabUrl });
+          if (result?.matched && result.ruleId) {
+            await chrome.runtime.sendMessage({ action: "removeSingleTabRule", id: result.ruleId });
+          }
+        } catch {
+        }
+      } else {
+        try {
+          const pattern = new URL(_contextTabUrl).host;
+          await chrome.runtime.sendMessage({ action: "addSingleTabRule", pattern });
+        } catch {
+        }
+      }
+    });
     document.getElementById("ctxCloseWithChildren")?.addEventListener("click", async (e) => {
       e.stopPropagation();
       hideContextMenu();
@@ -551,6 +573,17 @@
     _contextNode = node ?? null;
     const menu = document.getElementById("contextMenu");
     if (!menu) return;
+    const checkEl = document.getElementById("ctxSingleTabCheck");
+    const patternEl = document.getElementById("ctxSingleTabPattern");
+    const singleTabItem = document.getElementById("ctxSingleTab");
+    if (checkEl) checkEl.textContent = "";
+    if (patternEl) patternEl.textContent = tabUrl ? new URL(tabUrl).host : "";
+    if (singleTabItem) {
+      const isHttp = tabUrl && (tabUrl.startsWith("http://") || tabUrl.startsWith("https://"));
+      singleTabItem.style.display = isHttp ? "" : "none";
+      const sep = singleTabItem.previousElementSibling;
+      if (sep && sep.classList.contains("context-menu-separator")) sep.style.display = isHttp ? "" : "none";
+    }
     menu.style.left = "0px";
     menu.style.top = "0px";
     menu.classList.add("visible");
@@ -563,6 +596,13 @@
     if (top + menuRect.height > winH) top = winH - menuRect.height - 4;
     menu.style.left = Math.max(0, left) + "px";
     menu.style.top = Math.max(0, top) + "px";
+    if (tabUrl && (tabUrl.startsWith("http://") || tabUrl.startsWith("https://"))) {
+      chrome.runtime.sendMessage({ action: "matchSingleTabRule", url: tabUrl }).then((result) => {
+        if (checkEl) checkEl.textContent = result?.matched ? "\u2713" : "";
+        if (patternEl) patternEl.textContent = result?.matched ? result.pattern : new URL(tabUrl).host;
+      }).catch(() => {
+      });
+    }
   }
   function hideContextMenu() {
     const menu = document.getElementById("contextMenu");

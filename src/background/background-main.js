@@ -6,6 +6,7 @@ import {
   settingsCache,
   persistentStorage,
   pinnedTabStorage,
+  singleTabRuleManager,
 } from './instances.js';
 
 import {
@@ -142,6 +143,80 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url &&
       (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
     await injectContentScript(tabId);
+  }
+});
+
+// ========== 单标签去重 ==========
+// 用 chrome.storage.session 存储新建标签的 ID + 创建时间
+// 优点：SW 被回收后重启，session 数据依然保留（MV3 安全）
+const SESSION_NEW_TABS_KEY = 'singleTabNewTabs';
+
+async function markTabAsNew(tabId) {
+  try {
+    const result = await chrome.storage.session.get([SESSION_NEW_TABS_KEY]);
+    const map = result[SESSION_NEW_TABS_KEY] || {};
+    map[tabId] = Date.now();
+    await chrome.storage.session.set({ [SESSION_NEW_TABS_KEY]: map });
+  } catch {}
+}
+
+async function consumeNewTabMark(tabId) {
+  // 检查是否是新建标签页，并同时从 session 中删除（只触发一次）
+  try {
+    const result = await chrome.storage.session.get([SESSION_NEW_TABS_KEY]);
+    const map = result[SESSION_NEW_TABS_KEY] || {};
+    const createdAt = map[tabId];
+    if (!createdAt) return false;
+    // 超过 60 秒视为过期（用户打开新标签后没有马上导航）
+    if (Date.now() - createdAt > 60000) {
+      delete map[tabId];
+      await chrome.storage.session.set({ [SESSION_NEW_TABS_KEY]: map });
+      return false;
+    }
+    delete map[tabId];
+    await chrome.storage.session.set({ [SESSION_NEW_TABS_KEY]: map });
+    return true;
+  } catch {}
+  return false;
+}
+
+chrome.tabs.onCreated.addListener((tab) => {
+  markTabAsNew(tab.id);
+});
+
+// 新标签页首次导航时检查单标签规则
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (!changeInfo.url) return;
+
+  const url = changeInfo.url;
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return;
+
+  // 检查是否是新建标签页首次导航（会同时消费标记，避免重复触发）
+  const isNewTab = await consumeNewTabMark(tabId);
+  if (!isNewTab) return;
+
+  try {
+    const rules = await singleTabRuleManager.getRules();
+    const matchedRule = singleTabRuleManager.matchUrlToRule(url, rules);
+    if (!matchedRule) return;
+
+    const allTabs = await chrome.tabs.query({});
+    // 找到另一个匹配同一规则的已存在标签页
+    const existingTab = allTabs.find(t => {
+      if (t.id === tabId) return false;
+      const tUrl = t.url || t.pendingUrl || '';
+      return singleTabRuleManager.matchPattern(matchedRule.pattern, tUrl);
+    });
+
+    if (existingTab) {
+      console.log(`🔒 单标签规则 "${matchedRule.pattern}"：关闭重复标签 ${tabId}，跳转到 ${existingTab.id}`);
+      pluginClosedTabs.add(tabId); // 避免触发 smart switch
+      await chrome.tabs.update(existingTab.id, { active: true });
+      await chrome.windows.update(existingTab.windowId, { focused: true });
+      await chrome.tabs.remove(tabId);
+    }
+  } catch (error) {
+    console.error('Error in single-tab dedup:', error);
   }
 });
 
@@ -391,6 +466,38 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
         } else {
           sendResponse({ success: false, error: 'childTabId and parentTabId required' });
+        }
+      } else if (request.action === 'getSingleTabRules') {
+        sendResponse(await singleTabRuleManager.getRules());
+      } else if (request.action === 'addSingleTabRule') {
+        if (request.pattern) {
+          const ok = await singleTabRuleManager.addRule(request.pattern);
+          sendResponse({ success: ok });
+        } else {
+          sendResponse({ success: false, error: 'pattern required' });
+        }
+      } else if (request.action === 'removeSingleTabRule') {
+        if (request.id) {
+          const ok = await singleTabRuleManager.removeRule(request.id);
+          sendResponse({ success: ok });
+        } else {
+          sendResponse({ success: false, error: 'id required' });
+        }
+      } else if (request.action === 'updateSingleTabRule') {
+        if (request.id && request.patch) {
+          const ok = await singleTabRuleManager.updateRule(request.id, request.patch);
+          sendResponse({ success: ok });
+        } else {
+          sendResponse({ success: false, error: 'id and patch required' });
+        }
+      } else if (request.action === 'matchSingleTabRule') {
+        // 检查某 URL 是否已有匹配规则，返回 { matched, ruleId, pattern }
+        if (request.url) {
+          const rules = await singleTabRuleManager.getRules();
+          const rule = singleTabRuleManager.matchUrlToRule(request.url, rules);
+          sendResponse(rule ? { matched: true, ruleId: rule.id, pattern: rule.pattern } : { matched: false });
+        } else {
+          sendResponse({ matched: false });
         }
       }
     } catch (error) {
