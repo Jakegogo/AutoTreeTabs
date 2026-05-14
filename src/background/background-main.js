@@ -1,230 +1,37 @@
-// 后台服务脚本 - 处理标签页创建和关系跟踪
-// 基于 URL 的持久化系统，解决 tabId 和 openerTabId 重启后变化的问题
+// 后台服务脚本入口 - 处理标签页创建和关系跟踪
+// 源码已拆分为 ES Modules，通过 esbuild 打包为 background.js
 
-importScripts('src/background/PinnedTabPersistentStorage.js');
-importScripts('src/background/DelayedMergeExecutor.js');
-importScripts('src/background/SettingsCache.js');
-importScripts('src/background/StorageManager.js');
-importScripts('src/background/tools.js');
-importScripts('src/background/AutoBackTrack.js');
+import {
+  storageManager,
+  settingsCache,
+  persistentStorage,
+  pinnedTabStorage,
+  singleTabRuleManager,
+} from './instances.js';
 
+import {
+  updateTabSnapshot,
+  deleteTabSnapshot,
+  scheduleSnapshotUpdate,
+  findNextTabToActivate,
+  updateCloseDirectionIndex,
+} from './AutoBackTrack.js';
 
-// URL-based 标签页树持久化系统 (学习自 Tabs Outliner)
-class TabTreePersistentStorage {
-  constructor() {
-    this.maxHistory = 500; // 限制历史记录数量
+import {
+  injectContentScript,
+  cleanupScrollPositionForTab,
+} from './tools.js';
+
+// 监听 settings 变化，清除 settingsCache（原 SettingsCache.js 末尾的全局引用，移至此处）
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.extensionSettings) {
+    console.log('📝 Extension settings changed, clearing cache');
+    settingsCache.clearCache();
   }
-
-  // 规范化 URL（只移除hash片段，保留所有查询参数）
-  normalizeUrl(url) {
-    try {
-      const urlObj = new URL(url);
-      
-      // 只移除 hash 片段，保留所有查询参数
-      urlObj.hash = '';
-      
-      return urlObj.href;
-    } catch (error) {
-      // 如果不是有效 URL，返回原始字符串（移除锚点）
-      return url.split('#')[0];
-    }
-  }
-
-  // 创建标签页的稳定标识符
-  createTabSignature(tab) {
-    // 获取有效的URL（优先使用url，fallback到pendingUrl）
-    const effectiveUrl = tab.url || tab.pendingUrl || '';
-    
-    return {
-      url: this.normalizeUrl(effectiveUrl),
-      title: tab.title || '',
-      favIconUrl: tab.favIconUrl || ''
-    };
-  }
-
-  // 记录标签页关系
-  async recordRelation(childTab, parentTab) {
-    // 检查自动恢复设置
-    if (!settingsCache.isFeatureEnabled('autoRestore')) {
-      return {};
-    }
-    try {
-      const persistentTree = await storageManager.getPersistentTree();
-      
-      const childSignature = this.createTabSignature(childTab);
-      const parentSignature = this.createTabSignature(parentTab);
-      
-      // 检查URL有效性
-      if (!childSignature.url || !parentSignature.url || 
-          childSignature.url.trim() === '' || parentSignature.url.trim() === '' ||
-          childSignature.url === 'chrome://newtab/' || 
-          parentSignature.url === 'chrome://newtab/' ||
-          childSignature.url.startsWith('chrome-extension://') ||
-          parentSignature.url.startsWith('chrome-extension://')) {
-        console.log('🚫 Skipping record: invalid URLs', childSignature.url, '->', parentSignature.url);
-        return;
-      }
-      
-      // 检查是否已存在相同的关系（避免重复记录）
-      const existingRelation = persistentTree.relations.find(relation => 
-        relation.child.url === childSignature.url && 
-        relation.parent.url === parentSignature.url
-      );
-      
-      if (existingRelation) {
-        // 更新时间戳即可，不重复添加
-        existingRelation.timestamp = Date.now();
-        console.log('🔄 Updated existing relation:', childSignature.url, '->', parentSignature.url);
-      } else {
-        // 添加新关系
-        const relation = {
-          child: childSignature,
-          parent: parentSignature,
-          timestamp: Date.now(),
-          method: childTab.openerTabId === parentTab.id ? 'opener' : 'manual'
-        };
-        
-        persistentTree.relations.push(relation);
-        console.log('📝 Recorded new relation:', relation.child.url, '->', relation.parent.url);
-      }
-      
-      // 限制历史记录数量
-      if (persistentTree.relations.length > this.maxHistory) {
-        persistentTree.relations = persistentTree.relations.slice(-this.maxHistory);
-      }
-      
-      storageManager.saveToPersistentTree(persistentTree);
-    } catch (error) {
-      console.error('Error recording relation:', error);
-    }
-  }
-
-  // 恢复标签页关系（防重复执行）
-  async restoreRelations() {
-    try {
-      // 检查自动恢复设置
-      const autoRestoreEnabled = await settingsCache.isFeatureEnabledSync('autoRestore');
-      if (!autoRestoreEnabled) {
-        console.log('🚫 autoRestore is disable!')
-        return {};
-      }
-      
-      // 检查是否已经有标签页关系数据，如果缓存已初始化（即使为空对象）则不进行恢复
-      const existingRelations = storageManager.getTabRelations();
-      if (existingRelations != null) {
-        console.log('🚫 Tab relations already exist, skipping restore. Existing relations:', Object.keys(existingRelations).length);
-        return existingRelations;
-      }
-      
-      const tabs = await chrome.tabs.query({});
-      const result = await chrome.storage.local.get(['persistentTabTree']);
-      const persistentTree = result.persistentTabTree || { relations: [], snapshots: [] };
-      
-      console.log('🔄 Restoring from', persistentTree.relations.length, 'recorded relations');
-      
-      // 创建当前标签页的 URL 到 Tab 的映射
-      const urlToTab = new Map();
-      // console.log('📋 Current tabs:');
-      tabs.forEach(tab => {
-        const normalizedUrl = this.normalizeUrl(tab.url);
-        urlToTab.set(normalizedUrl, tab);
-        // console.log(`  ${tab.id}: ${normalizedUrl}`);
-      });
-      
-      const restoredRelations = {};
-      let restoredCount = 0;
-      let unmatchedCount = 0;
-      
-      // 从关系历史记录恢复（按时间倒序，最新的优先）
-      const sortedRelations = [...persistentTree.relations].sort((a, b) => b.timestamp - a.timestamp);
-      
-      console.log('🔍 Checking recorded relations:');
-      sortedRelations.forEach(relation => {
-        const childTab = urlToTab.get(relation.child.url);
-        const parentTab = urlToTab.get(relation.parent.url);
-        
-        if (childTab && parentTab && childTab.id !== parentTab.id && !restoredRelations[childTab.id]) {
-          restoredRelations[childTab.id] = parentTab.id;
-          restoredCount++;
-        } else {
-          unmatchedCount++;
-        }
-      });
-      
-      // 补充：基于当前的 openerTabId
-      tabs.forEach(tab => {
-        if (tab.openerTabId && !restoredRelations[tab.id]) {
-          const openerExists = tabs.some(t => t.id === tab.openerTabId);
-          if (openerExists) {
-            restoredRelations[tab.id] = tab.openerTabId;
-            restoredCount++;
-            console.log(`✓ Restored from current openerTabId: ${tab.id} -> ${tab.openerTabId}`);
-          }
-        }
-      });
-      
-      // 保存标签页关系
-      storageManager.saveTabRelations(restoredRelations);
-      console.log(`🎉 Total restored: ${restoredCount} relations (${unmatchedCount} unmatched)`);
-      
-      return restoredRelations;
-    } catch (error) {
-      console.error('Error restoring relations:', error);
-      return {};
-    }
-  }
-
-  // 移除标签页相关的所有关系（持久化存储）
-  async removeRelation(url) {
-    try {
-      const persistentTree = await storageManager.getPersistentTree();
-      const normalizedUrl = this.normalizeUrl(url);
-      persistentTree.relations = persistentTree.relations.filter(relation => relation.child.url !== normalizedUrl);
-      storageManager.saveToPersistentTree(persistentTree);
-    } catch(error) {
-      console.error('Error removing persistent relation:', error);
-    }
-  }
-
-  // 清理过期数据
-  async cleanup() {
-    try {
-      const result = await chrome.storage.local.get(['persistentTabTree']);
-      const persistentTree = result.persistentTabTree || { relations: [], snapshots: [] };
-      
-      const maxAge = 30 * 24 * 60 * 60 * 1000; // 30天
-      const now = Date.now();
-      
-      const beforeCount = persistentTree.relations.length;
-      persistentTree.relations = persistentTree.relations.filter(
-        relation => now - relation.timestamp < maxAge
-      );
-      
-      if (beforeCount > persistentTree.relations.length) {
-        storageManager.saveToPersistentTree(persistentTree);
-        console.log(`🧹 Cleaned up ${beforeCount - persistentTree.relations.length} expired relations`);
-      }
-    } catch (error) {
-      console.error('Error during cleanup:', error);
-    }
-  }
-}
-
-
-// 全局存储管理器实例
-const storageManager = new StorageManager();
-// 全局持久化存储实例
-const persistentStorage = new TabTreePersistentStorage();
-const pinnedTabStorage = new PinnedTabPersistentStorage();
-// 全局设置缓存实例
-const settingsCache = new SettingsCache();
-// 创建延迟执行器实例（500ms延迟）
-const tabSnapshotExecutor = new DelayedMergeExecutor(200);
+});
 
 // 标记通过插件关闭的标签页
 let pluginClosedTabs = new Set();
-
-
 
 // 记录 tabId -> 最近一次已知 URL（因为 tabs.onRemoved 触发时 tab 已不可查询）
 const tabLastKnownUrlById = new Map();
@@ -249,7 +56,6 @@ async function isPopupWindow(windowId) {
     const win = await chrome.windows.get(windowId);
     return win?.type === 'popup';
   } catch {
-    // window 可能已不存在/正在关闭，保守返回 false
     return false;
   }
 }
@@ -258,17 +64,15 @@ async function isPopupWindow(windowId) {
 chrome.tabs.onCreated.addListener(async (tab) => {
   console.log('Tab created:', tab.id, 'openerTabId:', tab.openerTabId, 'url:', tab.url);
   recordTabUrl(tab.id, tab.url || tab.pendingUrl || '');
-  
+
   try {
-    // 如果检测到窗口恢复，跳过自动父子关系设置
     if (isWindowRestoring) {
       console.log(`🔄 Window restoration in progress, skipping auto parent-child setup for tab ${tab.id}`);
       return;
     }
-    
+
     let parentTab = null;
-    
-    // 优先使用 Chrome 原生的 openerTabId
+
     if (tab.openerTabId) {
       try {
         parentTab = await chrome.tabs.get(tab.openerTabId);
@@ -278,8 +82,7 @@ chrome.tabs.onCreated.addListener(async (tab) => {
         console.log('OpenerTab not found, falling back to active tab');
       }
     }
-    
-    // 回退方案：使用当前活动标签页作为父标签页
+
     if (!parentTab) {
       const [activeTab] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
       if (activeTab && activeTab.id !== tab.id) {
@@ -288,8 +91,7 @@ chrome.tabs.onCreated.addListener(async (tab) => {
         console.log(`✓ Parent set to active tab: ${tab.id} -> ${activeTab.id}`);
       }
     }
-    
-    // 记录到持久化存储
+
     if (parentTab) {
       await persistentStorage.recordRelation(tab, parentTab);
     }
@@ -298,22 +100,26 @@ chrome.tabs.onCreated.addListener(async (tab) => {
   }
 });
 
+// AutoBackTrack 的快照更新也需要监听 onCreated / onMoved
+chrome.tabs.onCreated.addListener(() => {
+  scheduleSnapshotUpdate();
+});
+
+chrome.tabs.onMoved.addListener(() => {
+  scheduleSnapshotUpdate();
+});
+
 // 监听标签页URL更新 - 处理延迟加载的URL
-// 设计说明：专门处理浏览器原生的 openerTabId 关系
-// 当标签页创建时URL为空，URL加载完成后在此补充记录到持久化存储
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  // 快速检查自动恢复设置（使用缓存）
   if (!settingsCache.isFeatureEnabled('autoRestore')) {
     return;
   }
-  
-  // 只处理URL更新且不在窗口恢复过程中
+
   if (changeInfo.url && !isWindowRestoring) {
     console.log('Tab URL updated:', tabId, 'new URL:', changeInfo.url);
     recordTabUrl(tabId, changeInfo.url);
-    
+
     try {
-      // 1. 处理原生的 openerTabId 关系（与 setTabParent 中的逻辑形成互补）
       if (tab.openerTabId) {
         try {
           const parentTab = await chrome.tabs.get(tab.openerTabId);
@@ -323,141 +129,193 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
           console.log('OpenerTab not found when updating URL:', error);
         }
       }
-      
-      // 2. 更新已存储关系中以该标签页为父节点的关系
+
       await updateChildRelationsForUpdatedParent(tabId, tab);
-      
+
     } catch (error) {
       console.error('Error updating tab relation on URL change:', error);
     }
   }
 });
 
+// 标签页更新时按需注入content script
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url &&
+      (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
+    await injectContentScript(tabId);
+  }
+});
+
+// ========== 单标签去重 ==========
+// 用 chrome.storage.session 存储新建标签的 ID + 创建时间
+// 优点：SW 被回收后重启，session 数据依然保留（MV3 安全）
+const SESSION_NEW_TABS_KEY = 'singleTabNewTabs';
+
+async function markTabAsNew(tabId) {
+  try {
+    const result = await chrome.storage.session.get([SESSION_NEW_TABS_KEY]);
+    const map = result[SESSION_NEW_TABS_KEY] || {};
+    map[tabId] = Date.now();
+    await chrome.storage.session.set({ [SESSION_NEW_TABS_KEY]: map });
+  } catch {}
+}
+
+async function consumeNewTabMark(tabId) {
+  // 检查是否是新建标签页，并同时从 session 中删除（只触发一次）
+  try {
+    const result = await chrome.storage.session.get([SESSION_NEW_TABS_KEY]);
+    const map = result[SESSION_NEW_TABS_KEY] || {};
+    const createdAt = map[tabId];
+    if (!createdAt) return false;
+    // 超过 60 秒视为过期（用户打开新标签后没有马上导航）
+    if (Date.now() - createdAt > 60000) {
+      delete map[tabId];
+      await chrome.storage.session.set({ [SESSION_NEW_TABS_KEY]: map });
+      return false;
+    }
+    delete map[tabId];
+    await chrome.storage.session.set({ [SESSION_NEW_TABS_KEY]: map });
+    return true;
+  } catch {}
+  return false;
+}
+
+chrome.tabs.onCreated.addListener((tab) => {
+  markTabAsNew(tab.id);
+});
+
+// 新标签页首次导航时检查单标签规则
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (!changeInfo.url) return;
+
+  const url = changeInfo.url;
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return;
+
+  // 检查是否是新建标签页首次导航（会同时消费标记，避免重复触发）
+  const isNewTab = await consumeNewTabMark(tabId);
+  if (!isNewTab) return;
+
+  try {
+    const rules = await singleTabRuleManager.getRules();
+    const matchedRule = singleTabRuleManager.matchUrlToRule(url, rules);
+    if (!matchedRule) return;
+
+    const allTabs = await chrome.tabs.query({});
+    // 找到另一个匹配同一规则的已存在标签页
+    const existingTab = allTabs.find(t => {
+      if (t.id === tabId) return false;
+      const tUrl = t.url || t.pendingUrl || '';
+      return singleTabRuleManager.matchPattern(matchedRule.pattern, tUrl);
+    });
+
+    if (existingTab) {
+      console.log(`🔒 单标签规则 "${matchedRule.pattern}"：关闭重复标签 ${tabId}，跳转到 ${existingTab.id}`);
+      pluginClosedTabs.add(tabId); // 避免触发 smart switch
+      await chrome.tabs.update(existingTab.id, { active: true });
+      await chrome.windows.update(existingTab.windowId, { focused: true });
+      await chrome.tabs.remove(tabId);
+    }
+  } catch (error) {
+    console.error('Error in single-tab dedup:', error);
+  }
+});
+
 // 更新父节点URL变化时的子节点关系
 async function updateChildRelationsForUpdatedParent(parentTabId, updatedParentTab) {
   try {
-    const persistentTree = await storageManager.getPersistentTree();
     const tabRelations = await storageManager.getTabRelationsSync() || {};
-    
-    // 查找所有以该标签页为父节点的子节点
-    const childTabIds = Object.keys(tabRelations).filter(childId => 
+
+    const childTabIds = Object.keys(tabRelations).filter(childId =>
       tabRelations[childId] == parentTabId
     );
-    
+
     if (childTabIds.length === 0) {
-      return; // 没有子节点，无需更新
+      return;
     }
-    
+
     console.log(`🔄 Updating relations for parent ${parentTabId} with ${childTabIds.length} children`);
-    
-    // 为每个子节点更新持久化存储中的父节点信息
+
     for (const childTabId of childTabIds) {
       try {
         const childTab = await chrome.tabs.get(parseInt(childTabId));
-        
-        // 使用更新后的父节点信息重新记录关系
         await persistentStorage.recordRelation(childTab, updatedParentTab);
         console.log(`🔄 Updated relation: ${childTabId} -> ${parentTabId} (parent URL updated)`);
-        
       } catch (error) {
         console.log(`⚠️ Could not update relation for child ${childTabId}:`, error);
       }
     }
-    
+
   } catch (error) {
     console.error('Error updating child relations for updated parent:', error);
   }
 }
 
-
 // 监听标签页移除事件
 chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   try {
-    // 如果是窗口关闭导致的标签页移除
     if (removeInfo.isWindowClosing) {
       await removeTabRelations(tabId);
-      tabIndexSnapshot.delete(tabId);
-      // 清理滚动位置
+      deleteTabSnapshot(tabId);
       await cleanupScrollPositionForTab(tabId);
-      // 不需要在这里清理置顶状态，因为基于URL的存储会在下次访问时自动清理
       return;
     }
-    
-    // 如果是通过插件关闭的标签页，不执行自动切换
+
     if (pluginClosedTabs.has(tabId)) {
       console.log(`Tab ${tabId} was closed by plugin, skipping auto-switch`);
       pluginClosedTabs.delete(tabId);
       await removeTabRelations(tabId);
-      tabIndexSnapshot.delete(tabId);
-      // 清理滚动位置
+      deleteTabSnapshot(tabId);
       await cleanupScrollPositionForTab(tabId);
-      // 不需要在这里清理置顶状态，因为基于URL的存储会在下次访问时自动清理
       return;
     }
 
-    // ✅ OAuth 登录弹窗（popup window）关闭：应回到上一个标签页（浏览器默认行为）
-    // 不应触发 AutoBackTrack 的 sibling 跳转。
     const lastKnownUrl = tabLastKnownUrlById.get(tabId);
     const shouldSkipSmartSwitch = isGoogleOAuthUrl(lastKnownUrl) && await isPopupWindow(removeInfo.windowId);
     if (shouldSkipSmartSwitch) {
       console.log(`🔐 OAuth popup tab ${tabId} closed, skipping smart switch. url=`, lastKnownUrl);
       await removeTabRelations(tabId);
       await cleanupScrollPositionForTab(tabId);
-      tabIndexSnapshot.delete(tabId);
+      deleteTabSnapshot(tabId);
       return;
     }
-    
+
     console.log(`Tab ${tabId} was closed by user, checking settings...`);
-    
-    // 快速检查智能标签切换设置（使用缓存）
+
     if (!settingsCache.isFeatureEnabled('smartSwitch')) {
       console.log(`Smart tab switching is disabled, skipping auto-switch`);
       await removeTabRelations(tabId);
       await cleanupScrollPositionForTab(tabId);
-      // 不需要在这里清理置顶状态，因为基于URL的存储会在下次访问时自动清理
-      tabIndexSnapshot.delete(tabId);
+      deleteTabSnapshot(tabId);
       return;
     }
-    
-    // 更新方向检测索引
+
     updateCloseDirectionIndex(tabId);
-    
-    // 获取所有标签页关系数据
+
     const tabRelations = storageManager.getTabRelations();
-    
-    // 立即获取当前所有标签页（关闭后的状态）
     const remainingTabs = await chrome.tabs.query({});
-    // console.log(`Remaining tabs after close:`, remainingTabs.map(t => `${t.id}(${t.index})`));
-    
-    // 查找要激活的下一个标签页
+
     const nextTabId = findNextTabToActivate(tabId, tabRelations || {}, remainingTabs);
-    
+
     if (nextTabId) {
       console.log(`Activating next tab: ${nextTabId} after closing ${tabId}`);
       await chrome.tabs.update(nextTabId, { active: true });
     }
-    
-    // 清理相关的关系数据和快照
+
     await removeTabRelations(tabId);
     await cleanupScrollPositionForTab(tabId);
-    // 不需要在这里清理置顶状态，因为基于URL的存储会在下次访问时自动清理
-    tabIndexSnapshot.delete(tabId);
+    deleteTabSnapshot(tabId);
   } catch (error) {
     console.error('Error handling tab removal:', error);
   } finally {
     tabLastKnownUrlById.delete(tabId);
   }
-  // 刷新快照
   updateTabSnapshot();
 });
-
-
 
 // 标签页激活时按需注入content script
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tab = await chrome.tabs.get(activeInfo.tabId);
-    // 只在http/https页面注入
     if (tab.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
       await injectContentScript(activeInfo.tabId);
     }
@@ -467,21 +325,17 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     storageManager.addToGlobalTabHistory(activeInfo.tabId);
   } catch (error) {
-    console.log('Error injecting content script on tab activation:', error);
+    console.log('Error adding to global tab history:', error);
   }
 });
 
-
 // 监听来自popup和content script的消息
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // 处理异步消息，确保 sendResponse 正确工作
   (async () => {
     try {
       if (request.action === 'linkClicked') {
-        // 用户点击了链接，记录父子关系
         const parentTabId = sender.tab.id;
-        
-        // 等待新标签页创建
+
         setTimeout(async () => {
           try {
             const tabs = await chrome.tabs.query({ active: true, windowId: sender.tab.windowId });
@@ -494,7 +348,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse({ success: true });
         }, 100);
       } else if (request.action === 'markPluginClosed') {
-        // 标记通过插件关闭的标签页
         if (request.tabIds && Array.isArray(request.tabIds)) {
           request.tabIds.forEach(tabId => {
             pluginClosedTabs.add(tabId);
@@ -503,22 +356,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         sendResponse({ success: true });
       } else if (request.action === 'restoreRelations') {
-        // Popup 请求从持久化存储恢复关系
         console.log('Popup requested restore relations');
         await persistentStorage.restoreRelations();
         sendResponse({ success: true });
       } else if (request.action === 'getHistoryData') {
         sendResponse(await storageManager.getGlobalTabHistorySync());
       } else if (request.action === 'saveHistoryData') {
-        // 保存历史记录数据
         if (request.historyData) {
           storageManager.saveGlobalTabHistory(request.historyData);
         }
         sendResponse({ success: true });
       } else if (request.action === 'getTabRelations') {
-        // 获取当前的标签页关系缓存：
-        // - 若缓存尚未初始化，返回 undefined 让 popup 继续轮询等待（避免误渲染为“平铺”）
-        // - 若已初始化（即使为空对象），正常返回
         const tabRelations = storageManager.getTabRelations();
         if (tabRelations == null) {
           sendResponse(undefined);
@@ -533,14 +381,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse(false);
         }
       } else if (request.action === 'saveScrollPosition') {
-        // 保存滚动位置
         if (request.url && request.position) {
           await storageManager.saveScrollPosition(request.url, request.position);
           console.log(`📜 Saved scroll position for ${request.url}:`, request.position);
         }
         sendResponse({ success: true });
       } else if (request.action === 'getScrollPosition') {
-        // 获取滚动位置（同步版本）
         if (request.url) {
           const position = await storageManager.getScrollPositionSync(request.url);
           sendResponse(position);
@@ -549,14 +395,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse(null);
         }
       } else if (request.action === 'removeScrollPosition') {
-        // 移除滚动位置
         if (request.url) {
           await storageManager.removeScrollPosition(request.url);
           console.log(`🗑️ Removed scroll position for ${request.url}`);
         }
         sendResponse({ success: true });
       } else if (request.action === 'removeTabRelationsFor') {
-        // 移除指定标签页的父子关系（用于置顶等场景）
         if (request.tabId) {
           try {
             await removeTabParentRelationsPersistent(parseInt(request.tabId));
@@ -570,17 +414,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         } else {
           sendResponse({ success: false, error: 'tabId required' });
         }
-      } else if (request.action === 'isFeatureEnabled') {
-        // 同步检查特定功能是否启用
-        if (request.feature) {
-          const isEnabled = settingsCache.isFeatureEnabled(request.feature);
-          sendResponse({ enabled: isEnabled });
-          console.log(`📜 Feature ${request.feature} enabled:`, isEnabled);
-        } else {
-          sendResponse({ enabled: false });
-        }
       } else if (request.action === 'addPinnedTab') {
-        // 添加置顶标签页
         if (request.tabId && request.tabInfo) {
           const success = await pinnedTabStorage.addPinnedTab(request.tabId, request.tabInfo);
           sendResponse({ success });
@@ -588,7 +422,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse({ success: false, error: 'tabId and tabInfo required' });
         }
       } else if (request.action === 'removePinnedTab') {
-        // 移除置顶标签页
         if (request.tabId) {
           const success = await pinnedTabStorage.removePinnedTab(request.tabId);
           sendResponse({ success });
@@ -596,15 +429,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse({ success: false, error: 'tabId required' });
         }
       } else if (request.action === 'getPinnedTabs') {
-        // 获取所有置顶标签页（基于URL存储）
         const pinnedTabs = await storageManager.getPinnedTabs();
         sendResponse(pinnedTabs);
       } else if (request.action === 'getPinnedTabIdsCache') {
-        // 获取基于当前tabId的置顶标签页映射（使用缓存）
-        const pinnedTabIdsCache = await storageManager.getPinnedTabIdsCache(pinnedTabStorage);
+        const pinnedTabIdsCache = await storageManager.getPinnedTabIdsCache();
         sendResponse(pinnedTabIdsCache);
       } else if (request.action === 'isPinnedTab') {
-        // 检查标签页是否置顶
         if (request.tabId) {
           const isPinned = await pinnedTabStorage.isPinnedTab(request.tabId);
           sendResponse({ isPinned });
@@ -625,14 +455,57 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         } catch (e) {
           sendResponse({ success: false });
         }
+      } else if (request.action === 'setTabParent') {
+        if (request.childTabId && request.parentTabId) {
+          try {
+            await setTabParent(parseInt(request.childTabId), parseInt(request.parentTabId));
+            sendResponse({ success: true });
+          } catch (e) {
+            console.error('Error setting tab parent via message:', e);
+            sendResponse({ success: false, error: e?.message || String(e) });
+          }
+        } else {
+          sendResponse({ success: false, error: 'childTabId and parentTabId required' });
+        }
+      } else if (request.action === 'getSingleTabRules') {
+        sendResponse(await singleTabRuleManager.getRules());
+      } else if (request.action === 'addSingleTabRule') {
+        if (request.pattern) {
+          const ok = await singleTabRuleManager.addRule(request.pattern);
+          sendResponse({ success: ok });
+        } else {
+          sendResponse({ success: false, error: 'pattern required' });
+        }
+      } else if (request.action === 'removeSingleTabRule') {
+        if (request.id) {
+          const ok = await singleTabRuleManager.removeRule(request.id);
+          sendResponse({ success: ok });
+        } else {
+          sendResponse({ success: false, error: 'id required' });
+        }
+      } else if (request.action === 'updateSingleTabRule') {
+        if (request.id && request.patch) {
+          const ok = await singleTabRuleManager.updateRule(request.id, request.patch);
+          sendResponse({ success: ok });
+        } else {
+          sendResponse({ success: false, error: 'id and patch required' });
+        }
+      } else if (request.action === 'matchSingleTabRule') {
+        // 检查某 URL 是否已有匹配规则，返回 { matched, ruleId, pattern }
+        if (request.url) {
+          const rules = await singleTabRuleManager.getRules();
+          const rule = singleTabRuleManager.matchUrlToRule(request.url, rules);
+          sendResponse(rule ? { matched: true, ruleId: rule.id, pattern: rule.pattern } : { matched: false });
+        } else {
+          sendResponse({ matched: false });
+        }
       }
     } catch (error) {
       console.error('Error handling message:', error);
       sendResponse({ error: error.message });
     }
   })();
-  
-  // 返回 true 表示异步响应
+
   return true;
 });
 
@@ -640,23 +513,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function setTabParent(childTabId, parentTabId) {
   try {
     const tabRelations = await storageManager.getTabRelationsSync() || {};
-    
+
     tabRelations[childTabId] = parentTabId;
-    
+
     storageManager.saveTabRelations(tabRelations);
     console.log(`Set parent for tab ${childTabId} to ${parentTabId}`);
-    
-    // 如果是手动设置的关系，也记录到持久化存储
+
     try {
       const [childTab, parentTab] = await Promise.all([
         chrome.tabs.get(childTabId),
         chrome.tabs.get(parentTabId)
       ]);
-      
-      // 避免重复记录：分工明确处理不同类型的父子关系
-      // 1. 原生关系 (openerTabId)：由 onCreated + onUpdated 监听器处理
-      // 2. 手动关系 (插件设置)：由此处记录到持久化存储
-      // 只有当这不是基于浏览器原生 openerTabId 的自动关系时才记录
+
       if (childTab.openerTabId !== parentTabId) {
         await persistentStorage.recordRelation(childTab, parentTab);
         console.log(`📝 Manual relation recorded: ${childTab.id} -> ${parentTabId} (not from openerTabId)`);
@@ -671,44 +539,39 @@ async function setTabParent(childTabId, parentTabId) {
   }
 }
 
-// 移除标签页相关的所有关系
+// 移除标签页相关的所有关系（内存缓存）
 async function removeTabRelations(removedTabId) {
   try {
     const tabRelations = storageManager.getTabRelations();
     if (!tabRelations) {
       return;
-    } 
+    }
 
-    // 移除以该标签页为子标签页的关系
     delete tabRelations[removedTabId];
-    
-    // 移除以该标签页为父标签页的关系
+
     Object.keys(tabRelations).forEach(childId => {
       if (tabRelations[childId] === removedTabId) {
         delete tabRelations[childId];
       }
     });
-    
+
     storageManager.saveTabRelations(tabRelations);
-    // console.log(`Cleaned up relations for removed tab ${removedTabId}`);
   } catch (error) {
     console.error('Error removing tab relations:', error);
   }
 }
 
-// 移除标签页相关的所有关系（持久化存储）
+// 移除标签页相关的所有关系（含持久化存储）
 async function removeTabParentRelationsPersistent(removedTabId) {
   try {
     const tabRelations = storageManager.getTabRelations();
     if (!tabRelations) {
       return;
-    } 
-    // 移除以该标签页为子标签页的关系
+    }
     delete tabRelations[removedTabId];
     storageManager.saveTabRelations(tabRelations);
 
     const tab = await chrome.tabs.get(removedTabId);
-    // 移除持久化存储中的关系
     if (tab && tab.url) {
       persistentStorage.removeRelation(tab.url);
       console.log(`🗑️ Removed persistent relation for ${tab.url}`);
@@ -718,47 +581,11 @@ async function removeTabParentRelationsPersistent(removedTabId) {
   }
 }
 
-
-
-
-// 构建标签页树结构
-function buildTabTree(tabs, tabRelations) {
-  const tabMap = new Map();
-  const rootTabs = [];
-  
-  // 创建标签页映射
-  tabs.forEach(tab => {
-    tabMap.set(tab.id, {
-      ...tab,
-      children: []
-    });
-  });
-  
-  // 构建父子关系
-  tabs.forEach(tab => {
-    const parentId = tabRelations[tab.id];
-    if (parentId && tabMap.has(parentId)) {
-      const parent = tabMap.get(parentId);
-      const child = tabMap.get(tab.id);
-      parent.children.push(child);
-    } else {
-      // 没有父节点的作为根节点
-      rootTabs.push(tabMap.get(tab.id));
-    }
-  });
-  
-  return rootTabs;
-}
-
-// 旧的基于 openerTabId 的重建函数已被 persistentStorage.restoreRelations() 替代
-
 // 插件安装时的初始化
 chrome.runtime.onInstalled.addListener(async () => {
   try {
     console.log('🚀 Extension initialized');
-    // 从持久化存储恢复关系
     await persistentStorage.restoreRelations();
-    // 清理过期数据
     await persistentStorage.cleanup();
   } catch (error) {
     console.error('Error initializing extension:', error);
@@ -771,8 +598,6 @@ let isWindowRestoring = false;
 // 监听窗口关闭事件 - 清除内存中的标签关系
 chrome.windows.onRemoved.addListener(async (windowId) => {
   try {
-    // 只在“所有 normal window 都关闭”时才清空内存缓存。
-    // 否则（例如 OAuth popup window 关闭）不应影响其他正常窗口的树关系与历史。
     const normalWindows = await chrome.windows.getAll({ windowTypes: ['normal'] });
     if (!normalWindows || normalWindows.length === 0) {
       console.log('🗑️ All normal windows closed, clearing tabRelations + global history');
@@ -789,17 +614,15 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
 // 监听窗口创建事件 - 检测窗口恢复
 chrome.windows.onCreated.addListener(async (window) => {
   console.log('🪟 Window created:', window.id, 'type:', window.type);
-  
-  // 如果是正常窗口类型，标记为窗口恢复状态
+
   if (window.type === 'normal') {
     isWindowRestoring = true;
     console.log('🔄 Window restoration detected, will skip auto parent-child setup');
-    
-    // 4秒后执行恢复逻辑并重置状态
+
     setTimeout(async () => {
       console.log('🔄 Starting restoration process...');
       await persistentStorage.restoreRelations();
-      
+
       isWindowRestoring = false;
       console.log('🔄 Window restoration detection reset');
     }, 3000);
@@ -810,10 +633,8 @@ chrome.windows.onCreated.addListener(async (window) => {
 let rebuildTimeout = null;
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
   if (windowId !== chrome.windows.WINDOW_ID_NONE) {
-    // 清除之前的定时器
     if (rebuildTimeout) clearTimeout(rebuildTimeout);
-    
-    // 延迟1秒执行，避免频繁切换窗口时重复执行
+
     rebuildTimeout = setTimeout(async () => {
       console.log('🔄 Window focus changed, restoring relations...');
       await persistentStorage.restoreRelations();
@@ -821,36 +642,21 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
   }
 });
 
-// 标签页更新时按需注入content script
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.url && 
-      (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
-    await injectContentScript(tabId);
-  }
-});
-
-// 初始化时预加载滚动位置缓存
+// 初始化时预加载缓存
 storageManager.getScrollPositions().then(() => {
   console.log('📜 Scroll positions cache preloaded');
 }).catch(error => {
   console.error('Error preloading scroll positions cache:', error);
 });
 
-// 初始化时预加载设置缓存
 settingsCache.getSettings().then(() => {
   console.log('📜 Settings cache preloaded');
 }).catch(error => {
   console.error('Error preloading settings cache:', error);
 });
 
-
 // 初始化时立即建立快照
 updateTabSnapshot();
-
-// 初始化设置缓存
-settingsCache.getSettings().catch(error => {
-  console.warn('Failed to initialize settings cache:', error);
-});
 
 // 定期清理过期的滚动位置（每小时执行一次）
 setInterval(async () => {
@@ -859,9 +665,9 @@ setInterval(async () => {
   } catch (error) {
     console.error('Error during scroll position cleanup:', error);
   }
-}, 60 * 60 * 1000); // 1小时
+}, 60 * 60 * 1000);
 
-// 启动时立即执行一次清理
+// 启动时立即执行一次清理（5秒后）
 setTimeout(async () => {
   try {
     await storageManager.cleanupOldScrollPositions();
@@ -870,7 +676,7 @@ setTimeout(async () => {
   } catch (error) {
     console.error('Error during initial cleanup:', error);
   }
-}, 5000); // 5秒后执行
+}, 5000);
 
 // 定期清理无效的置顶标签页（每30分钟执行一次）
 setInterval(async () => {
@@ -879,7 +685,7 @@ setInterval(async () => {
   } catch (error) {
     console.error('Error during pinned tabs cleanup:', error);
   }
-}, 30 * 60 * 1000); // 30分钟
+}, 30 * 60 * 1000);
 
 // 定期清理过期的置顶标签页（每天执行一次）
 setInterval(async () => {
@@ -888,5 +694,4 @@ setInterval(async () => {
   } catch (error) {
     console.error('Error during expired pinned tabs cleanup:', error);
   }
-}, 24 * 60 * 60 * 1000); // 24小时
-
+}, 24 * 60 * 60 * 1000);

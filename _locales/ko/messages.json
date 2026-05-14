@@ -267,6 +267,10 @@
     "message": "이 노드와 모든 하위 노드 선택",
     "description": "선택 버튼 툴팁"
   },
+  "dragToReparent": {
+    "message": "다른 탭 아래 자식 노드로 드래그 이동",
+    "description": "드래그 핸들 버튼 툴팁"
+  },
   "closeNode": {
     "message": "이 노드와 모든 하위 노드 닫기",
     "description": "닫기 버튼 툴팁 (부모 노드)"
@@ -497,5 +501,18 @@
   "openingCompleted": {
     "message": "완료!",
     "description": "모든 탭이 열렸을 때의 메시지"
+  },
+
+  "ctxMoveToWindow": {
+    "message": "새 창으로 이동",
+    "description": "컨텍스트 메뉴: 새 창으로 탭 이동"
+  },
+  "ctxCopyLink": {
+    "message": "링크 복사",
+    "description": "컨텍스트 메뉴: 탭 URL을 클립보드에 복사"
+  },
+  "ctxCloseWithChildren": {
+    "message": "노드 및 모든 하위 노드 닫기",
+    "description": "컨텍스트 메뉴: 현재 탭과 모든 하위 탭 닫기"
   }
 }

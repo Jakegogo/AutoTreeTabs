@@ -1,5 +1,5 @@
 // 设置缓存机制
-class SettingsCache {
+export class SettingsCache {
   constructor() {
     this.cache = null;
     this.lastUpdate = 0;
@@ -120,12 +120,6 @@ class SettingsCache {
 }
 
 
-// 监听设置变化，清除缓存
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local' && changes.extensionSettings) {
-    console.log('📝 Extension settings changed, clearing cache');
-    settingsCache.clearCache();
-  }
-});
+// 注意：settings 变化监听已移至 background-main.js（注册后可访问 settingsCache 实例）
 
 

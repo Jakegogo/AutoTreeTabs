@@ -267,6 +267,10 @@
     "message": "選取該節點及所有子節點",
     "description": "選擇按鈕提示"
   },
+  "dragToReparent": {
+    "message": "拖拽到其他標籤頁下作為子節點",
+    "description": "拖拽按鈕提示"
+  },
   "closeNode": {
     "message": "關閉該節點及所有子節點",
     "description": "關閉按鈕提示（父節點）"
@@ -497,5 +501,18 @@
   "openingCompleted": {
     "message": "完成！",
     "description": "所有分頁開啟完成的消息"
+  },
+
+  "ctxMoveToWindow": {
+    "message": "移動到新視窗",
+    "description": "右鍵選單：移動到新視窗"
+  },
+  "ctxCopyLink": {
+    "message": "複製連結",
+    "description": "右鍵選單：複製分頁連結"
+  },
+  "ctxCloseWithChildren": {
+    "message": "關閉節點及所有子節點",
+    "description": "右鍵選單：關閉當前分頁及其所有子節點"
   }
 }

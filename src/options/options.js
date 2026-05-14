@@ -333,6 +333,167 @@ This action CANNOT be undone!`;
   }
 }
 
+// ==================== 单标签规则管理 ====================
+const SINGLE_TAB_STORAGE_KEY = 'singleTabRules';
+
+class SingleTabRulesUI {
+  constructor() {
+    this._rules = [];
+    this._listEl = document.getElementById('singleTabRulesList');
+    this._inputEl = document.getElementById('newRulePattern');
+    this._addBtn = document.getElementById('addSingleTabRuleBtn');
+    if (!this._listEl) return;
+    this._addBtn?.addEventListener('click', () => this._addRule());
+    this._inputEl?.addEventListener('keydown', (e) => { if (e.key === 'Enter') this._addRule(); });
+    this._load();
+  }
+
+  async _getRules() {
+    const result = await chrome.storage.local.get([SINGLE_TAB_STORAGE_KEY]);
+    return result[SINGLE_TAB_STORAGE_KEY] || [];
+  }
+
+  async _saveRules(rules) {
+    await chrome.storage.local.set({ [SINGLE_TAB_STORAGE_KEY]: rules });
+  }
+
+  async _load() {
+    this._rules = await this._getRules();
+    this._render();
+  }
+
+  _render() {
+    if (!this._listEl) return;
+    if (this._rules.length === 0) {
+      this._listEl.innerHTML = '<div class="rules-empty">暂无规则，右键标签页添加，或在下方手动输入</div>';
+      return;
+    }
+    this._listEl.innerHTML = '';
+    for (const rule of this._rules) {
+      this._listEl.appendChild(this._buildRow(rule));
+    }
+  }
+
+  _buildRow(rule) {
+    const row = document.createElement('div');
+    row.className = 'rule-item';
+    row.dataset.id = rule.id;
+
+    // 启用开关
+    const sw = document.createElement('label');
+    sw.className = 'switch';
+    sw.style.flexShrink = '0';
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.checked = rule.enabled;
+    chk.addEventListener('change', () => this._toggle(rule.id, chk.checked));
+    const slider = document.createElement('span');
+    slider.className = 'slider';
+    sw.appendChild(chk);
+    sw.appendChild(slider);
+
+    // Pattern 文本
+    const patternSpan = document.createElement('span');
+    patternSpan.className = 'rule-pattern';
+    patternSpan.title = rule.pattern;
+    patternSpan.textContent = rule.pattern;
+
+    // 操作按钮
+    const actions = document.createElement('div');
+    actions.className = 'rule-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn-sm btn-sm-edit';
+    editBtn.textContent = '编辑';
+    editBtn.addEventListener('click', () => this._startEdit(row, rule, patternSpan, editBtn));
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-sm btn-sm-delete';
+    delBtn.textContent = '删除';
+    delBtn.addEventListener('click', () => this._delete(rule.id));
+
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+
+    row.appendChild(sw);
+    row.appendChild(patternSpan);
+    row.appendChild(actions);
+    return row;
+  }
+
+  _startEdit(row, rule, patternSpan, editBtn) {
+    // 替换 span 为 input
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'rule-pattern-input';
+    input.value = rule.pattern;
+    patternSpan.replaceWith(input);
+    input.focus();
+
+    // 替换编辑按钮为保存/取消
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'btn-sm btn-sm-save';
+    saveBtn.textContent = '保存';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn-sm btn-sm-cancel';
+    cancelBtn.textContent = '取消';
+
+    editBtn.replaceWith(saveBtn, cancelBtn);
+
+    const doSave = async () => {
+      const newPattern = input.value.trim();
+      if (!newPattern) return;
+      await this._update(rule.id, { pattern: newPattern });
+    };
+
+    saveBtn.addEventListener('click', doSave);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSave(); if (e.key === 'Escape') this._load(); });
+    cancelBtn.addEventListener('click', () => this._load());
+  }
+
+  async _addRule() {
+    const pattern = this._inputEl?.value.trim();
+    if (!pattern) return;
+    const rules = await this._getRules();
+    if (rules.some(r => r.pattern === pattern)) {
+      alert(`规则 "${pattern}" 已存在`);
+      return;
+    }
+    rules.push({
+      id: `r_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      pattern,
+      enabled: true,
+      createdAt: Date.now(),
+    });
+    await this._saveRules(rules);
+    if (this._inputEl) this._inputEl.value = '';
+    await this._load();
+  }
+
+  async _delete(id) {
+    const rules = await this._getRules();
+    await this._saveRules(rules.filter(r => r.id !== id));
+    await this._load();
+  }
+
+  async _toggle(id, enabled) {
+    const rules = await this._getRules();
+    const idx = rules.findIndex(r => r.id === id);
+    if (idx !== -1) rules[idx].enabled = enabled;
+    await this._saveRules(rules);
+    this._rules = rules;
+  }
+
+  async _update(id, patch) {
+    const rules = await this._getRules();
+    const idx = rules.findIndex(r => r.id === id);
+    if (idx !== -1) Object.assign(rules[idx], patch);
+    await this._saveRules(rules);
+    await this._load();
+  }
+}
+
 // 确保只初始化一次，避免重复注册事件导致权限弹窗出现两次
 (function initOptionsOnce() {
   if (window.__optionsInitialized) return;
@@ -340,8 +501,10 @@ This action CANNOT be undone!`;
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     window.optionsManager = new OptionsManager();
+    window.singleTabRulesUI = new SingleTabRulesUI();
   });
 } else {
   window.optionsManager = new OptionsManager();
+  window.singleTabRulesUI = new SingleTabRulesUI();
 }
 })();

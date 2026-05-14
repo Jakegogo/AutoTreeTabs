@@ -165,86 +165,204 @@ function generateHTML(tree, pinnedTabsCache = null, i18nMessages = {}) {
   <meta charset="utf-8">
   <title>${i18nMessages.exportPageTitle || 'Tab Tree Export'} - ${timestamp}</title>
   <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #333333;
+      --border-color: #ddd;
+      --hover-bg: #f0f0f0;
+      --tree-line-color: rgba(68, 68, 68, 0.45);
+      --tree-row-height: 26px;
+      --tree-icon-size: 16px;
+      --tree-indent-width: var(--tree-icon-size);
+      --separator-badge-bg: rgba(255, 215, 0, 0.12);
+      --separator-badge-color: #b8860b;
+      --separator-badge-border: rgba(255, 215, 0, 0.6);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #2d2d2d;
+        --text-color: #e0e0e0;
+        --border-color: #555;
+        --hover-bg: #404040;
+        --tree-line-color: rgba(200, 200, 200, 0.35);
+        --separator-badge-bg: rgba(218, 165, 32, 0.18);
+        --separator-badge-color: #e6c469;
+        --separator-badge-border: rgba(218, 165, 32, 0.55);
+      }
+    }
+
     body {
-      margin: 20px;
-      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, "PingFangSC", "Microsoft YaHei", 微软雅黑, sans-serif;
+      font-size: 12px;
       background-color: #f5f5f5;
+      color: var(--text-color);
     }
-    
+
+    @media (prefers-color-scheme: dark) {
+      body { background-color: #1a1a1a; }
+    }
+
+    .page-container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
     .header {
-      background: white;
+      background-color: var(--bg-color);
       padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
-    
+
+    .header h1 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      color: var(--text-color);
+    }
+
+    .header p {
+      margin: 4px 0;
+      font-size: 13px;
+      color: var(--text-color);
+      opacity: 0.8;
+    }
+
     .tree-container {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      font-family: 'Courier New', monospace;
-      line-height: 24px;
+      background-color: var(--bg-color);
+      padding: 10px 20px 20px 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      font-family: Arial, "PingFangSC", "Microsoft YaHei", 微软雅黑, sans-serif;
+      line-height: var(--tree-row-height);
     }
-    
+
     .tree-node {
       display: flex;
       align-items: center;
-      padding: 2px 0;
+      padding: 0;
+      margin: 0;
       cursor: pointer;
       border-radius: 3px;
       position: relative;
-      min-height: 24px;
+      height: var(--tree-row-height);
+      border-left: 3px solid transparent;
+      box-sizing: border-box;
     }
-    
+
     .tree-node:hover {
-      background-color: #f0f0f0;
+      background-color: var(--hover-bg);
+      transition: background-color 0.2s ease;
     }
-    
-    .tree-structure {
-      font-family: 'Courier New', monospace;
-      color: #666;
-      white-space: pre;
-      margin-right: 6px;
+
+    /* 图形化树形连接线 */
+    .tree-gutter {
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+      height: 100%;
+      margin-right: 10px;
+    }
+
+    .tree-col {
+      position: relative;
+      width: var(--tree-indent-width);
+      height: 100%;
       flex-shrink: 0;
     }
-    
+
+    .tree-col.has-line::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      transform: translateX(-0.5px);
+      background: var(--tree-line-color);
+    }
+
+    .tree-junction::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      transform: translateX(-0.5px);
+      background: var(--tree-line-color);
+    }
+
+    .tree-junction.is-last::before {
+      bottom: 50%;
+    }
+
+    .tree-junction::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: calc(var(--tree-indent-width) / 2);
+      height: 1px;
+      transform: translateY(-0.5px);
+      background: var(--tree-line-color);
+    }
+
+    .tree-icon-col {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .tree-icon {
       width: 16px;
       height: 16px;
-      margin-right: 6px;
-      background-size: contain;
+      margin-right: 0;
       flex-shrink: 0;
-      background-repeat: no-repeat;
-      background-position: center;
+      object-fit: contain;
     }
-    
+
     .tree-title {
       flex-grow: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-right: 4px;
+      font-family: Arial, "PingFangSC", "Microsoft YaHei", 微软雅黑, sans-serif;
       color: #1976d2;
       text-decoration: none;
-      font-family: Arial, sans-serif;
     }
-    
+
     .tree-title:hover {
       text-decoration: underline;
     }
-    
-    .tab-status {
+
+    @media (prefers-color-scheme: dark) {
+      .tree-title { color: #64b5f6; }
+    }
+
+    .tab-open-time {
+      font-size: 10px;
+      color: var(--text-color);
+      opacity: 0.4;
+      flex-shrink: 0;
       margin-left: 6px;
+      white-space: nowrap;
+    }
+
+    .tab-status {
+      margin-left: 4px;
       font-size: 14px;
       color: #666;
+      flex-shrink: 0;
     }
-    
-    .tab-status.playing {
-      color: #4CAF50;
-    }
-    
-    .tab-status.muted {
-      color: #f44336;
-    }
-    
+
+    .tab-status.playing { color: #4CAF50; }
+    .tab-status.muted { color: #f44336; }
+
     .open-children-btn {
       margin-left: 8px;
       background: #2196f3;
@@ -256,16 +374,17 @@ function generateHTML(tree, pinnedTabsCache = null, i18nMessages = {}) {
       font-size: 11px;
       opacity: 0;
       transition: opacity 0.2s;
+      flex-shrink: 0;
     }
-    
+
     .tree-node:hover .open-children-btn {
       opacity: 1;
     }
-    
+
     .open-children-btn:hover {
       background: #1976d2;
     }
-    
+
     .open-all-tabs-btn {
       background: #ff9800;
       color: white;
@@ -276,79 +395,96 @@ function generateHTML(tree, pinnedTabsCache = null, i18nMessages = {}) {
       font-size: 14px;
       font-weight: bold;
     }
-    
+
     .open-all-tabs-btn:hover {
       background: #f57c00;
     }
-    
+
     /* 置顶标签页样式 */
     .tree-node.pinned-tab {
-      background-color: rgba(255, 215, 0, 0.1);
-      border-left: 3px solid #ffd700;
-      padding-left: 5px;
-      position: relative;
+      border-left-color: #ffd700;
     }
-    
+
     .tree-node.pinned-tab .tree-title {
       font-weight: 600;
       color: #b8860b;
     }
-    
-    .tree-node.pinned-tab::before {
-      content: '📌';
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 12px;
-      opacity: 0.7;
+
+    @media (prefers-color-scheme: dark) {
+      .tree-node.pinned-tab .tree-title { color: #daa520; }
     }
-    
+
     /* 置顶分隔线样式 */
     .pinned-separator {
       margin: 8px 0;
+      padding: 0;
       display: flex;
       align-items: center;
-      position: relative;
+      justify-content: flex-start;
+      gap: 8px;
     }
-    
+
     .separator-line {
-      flex: 1;
+      flex: 1 1 auto;
+      min-width: 24px;
       height: 1px;
-      background: linear-gradient(90deg, transparent, #ffd700, transparent);
-      position: relative;
+      background: linear-gradient(
+        to right,
+        transparent,
+        rgba(255, 215, 0, 0.3) 20%,
+        rgba(255, 215, 0, 0.6) 50%,
+        rgba(255, 215, 0, 0.3) 80%,
+        transparent
+      );
     }
-    
-    .separator-line::before {
-      content: '${i18nMessages.pinnedTabsSection || '📌 Pinned Tabs'}';
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      background: white;
-      padding: 0 12px;
-      font-size: 11px;
-      color: #b8860b;
-      font-weight: 600;
+
+    .separator-label {
+      max-width: 60%;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      color: var(--separator-badge-color);
+      background: var(--separator-badge-bg);
+      border: 1px solid var(--separator-badge-border);
+      padding: 1px 8px;
+      line-height: 1.2;
+      border-radius: 999px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .separator-line {
+        background: linear-gradient(
+          to right,
+          transparent,
+          rgba(218, 165, 32, 0.3) 20%,
+          rgba(218, 165, 32, 0.6) 50%,
+          rgba(218, 165, 32, 0.3) 80%,
+          transparent
+        );
+      }
     }
   </style>
 </head>
 <body>
+  <div class="page-container">
   <div class="header">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-      <h1 style="margin: 0;">${i18nMessages.exportPageTitle || 'Tab Tree Export'}</h1>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <h1>${i18nMessages.exportPageTitle || 'Tab Tree Export'}</h1>
       <button class="open-all-tabs-btn" onclick="openAllTabs()">${i18nMessages.openAllTabsBtn || 'Open All Tabs'}</button>
     </div>
     <p>${i18nMessages.exportedOn || 'Exported on:'} ${timestamp}</p>
     <p>${totalText}${pinnedText}</p>
     <p>${i18nMessages.exportInstructions || 'Click links to open tabs. For parent nodes with children, click "Open All" to open all child tabs. Use "Open All Tabs" to open every single tab.'}</p>
   </div>
-  
+
   <div class="tree-container">
     ${pinnedTabs.length > 0 ? generateTreeHTML(pinnedTabs, 0, [], pinnedTabsCache, i18nMessages) : ''}
-    ${pinnedTabs.length > 0 && normalTabs.length > 0 ? '<div class="pinned-separator"><div class="separator-line"></div></div>' : ''}
+    ${pinnedTabs.length > 0 && normalTabs.length > 0 ? `<div class="pinned-separator"><div class="separator-line"></div><span class="separator-label">${i18nMessages.pinnedTabsSection || '📌 Pinned Tabs'}</span><div class="separator-line"></div></div>` : ''}
     ${normalTabs.length > 0 ? generateTreeHTML(normalTabs, 0, [], pinnedTabsCache, i18nMessages) : ''}
+  </div>
   </div>
   
   <script>
@@ -460,30 +596,50 @@ function collectAllUrls(tree) {
   return urls;
 }
 
+// 格式化标签页打开时间（相对时间显示）
+function formatTabOpenTime(timestamp) {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return '刚刚';
+  if (diffMins < 60) return `${diffMins}分钟前`;
+  if (diffHours < 24) return `${diffHours}小时前`;
+  if (diffDays < 7) return `${diffDays}天前`;
+  const m = date.getMonth() + 1;
+  const d = date.getDate();
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  return `${m}/${d} ${hh}:${mm}`;
+}
+
 // 生成树形HTML结构
 function generateTreeHTML(nodes, depth = 0, parentLines = [], pinnedTabsCache = null, i18nMessages = {}) {
   if (depth === 0) {
     console.log('🌳 Generating tree HTML for', nodes.length, 'nodes at root level');
   }
-  
+
   let html = '';
-  
+
   nodes.forEach((node, index) => {
     const isLast = index === nodes.length - 1;
     const currentLines = [...parentLines];
-    
-    // 构建树形结构字符
-    let treeStructure = '';
-    for (let i = 0; i < depth; i++) {
-      if (i < currentLines.length) {
-        treeStructure += currentLines[i] ? '│   ' : '    ';
-      }
+
+    // 构建图形化树形连接线（gutter，图标也在 gutter 内，与 popup 结构一致）
+    let gutterHtml = '<span class="tree-gutter">';
+    // 祖先列（depth-1 个）
+    for (let i = 0; i < depth - 1; i++) {
+      gutterHtml += `<span class="tree-col${parentLines[i] ? ' has-line' : ''}"></span>`;
     }
-    
+    // 父级连接列（depth >= 1 时存在）
     if (depth > 0) {
-      treeStructure += isLast ? '└── ' : '├── ';
+      gutterHtml += `<span class="tree-col tree-junction${isLast ? ' is-last' : ''}"></span>`;
     }
-    
+
     // 生成状态图标
     let statusIcon = '';
     if (node.audible && !node.mutedInfo?.muted) {
@@ -491,50 +647,64 @@ function generateTreeHTML(nodes, depth = 0, parentLines = [], pinnedTabsCache = 
     } else if (node.mutedInfo?.muted) {
       statusIcon = '<span class="tab-status muted">×</span>';
     }
-    
+
     // 收集所有子节点URL（用于"打开所有"功能）
     const hasChildren = node.children && node.children.length > 0;
     let openAllButton = '';
     if (hasChildren) {
       const allUrls = collectChildUrls(node);
-      const urlsJson = JSON.stringify(allUrls).replace(/"/g, '&quot;');
       const openAllText = (typeof i18nMessages !== 'undefined' && i18nMessages.openAllBtn) || 'Open All';
-      openAllButton = `<button class="open-children-btn" onclick="openAllChildren([${allUrls.map(url => `&quot;${url.replace(/"/g, '&quot;')}&quot;`).join(',')}])">${openAllText}</button>`;
+      openAllButton = `<button class="open-children-btn" onclick="openAllChildren([${allUrls.map(url => `&quot;${url.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')}&quot;`).join(',')}])">${openAllText}</button>`;
     }
-    
+
     // 转义HTML属性中的特殊字符
-    const escapedUrl = (node.url || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-    const escapedTitle = (node.title || node.url || 'Untitled').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    const escapedUrl = (node.url || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    // 构建显示标题：超长标题（如 data: URL）截断处理
+    let rawTitle = node.title || node.url || 'Untitled';
+    if (rawTitle.length > 200) {
+      rawTitle = rawTitle.substring(0, 197) + '...';
+    }
+    const escapedTitle = rawTitle.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
     // 检查favIconUrl是否有效且不是chrome协议
     let safeFavIconUrl = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="%23ddd"/></svg>';
-    if (node.favIconUrl && 
-        !node.favIconUrl.startsWith('chrome-extension://') && 
+    if (node.favIconUrl &&
+        !node.favIconUrl.startsWith('chrome-extension://') &&
         !node.favIconUrl.startsWith('chrome://')) {
       safeFavIconUrl = node.favIconUrl;
     }
     const escapedFavIcon = safeFavIconUrl.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-    
+
     // 检查是否为置顶标签页
     const isPinned = pinnedTabsCache && pinnedTabsCache[node.id];
     const pinnedClass = isPinned ? ' pinned-tab' : '';
-    
+
+    // 标签页打开时间（使用 lastAccessed，Chrome Tab API 提供）
+    const openTimeText = formatTabOpenTime(node.lastAccessed);
+    const openTimeAbsolute = node.lastAccessed ? new Date(node.lastAccessed).toLocaleString() : '';
+    const openTimeHtml = openTimeText
+      ? `<span class="tab-open-time" title="${openTimeAbsolute}">${openTimeText}</span>`
+      : '';
+
+    // 图标列放在 gutter 内（与 popup renderNode 结构一致）
+    gutterHtml += `<span class="tree-col tree-icon-col"><img class="tree-icon" src="${escapedFavIcon}" onerror="this.style.display=&quot;none&quot;"></span></span>`;
+
     html += `
       <div class="tree-node${pinnedClass}">
-        <span class="tree-structure">${treeStructure}</span>
-        <img class="tree-icon" src="${escapedFavIcon}" onerror="this.style.display=&quot;none&quot;">
+        ${gutterHtml}
         <a class="tree-title" href="#" onclick="openTab(&quot;${escapedUrl}&quot;); return false;">${escapedTitle}</a>
         ${statusIcon}
         ${openAllButton}
+        ${openTimeHtml}
       </div>
     `;
-    
+
     // 递归处理子节点
     if (hasChildren) {
-      currentLines[depth] = !isLast;
+      if (depth > 0) currentLines[depth - 1] = !isLast;
       html += generateTreeHTML(node.children, depth + 1, currentLines, pinnedTabsCache, i18nMessages);
     }
   });
-  
+
   return html;
 }
 
