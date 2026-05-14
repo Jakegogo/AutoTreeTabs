@@ -106,11 +106,11 @@
 - GitHub Issues: https://github.com/Jakegogo/AutoTreeTabs
 - 邮箱: jakegogogo@gmail.com
 
-### 🆕 v1.0.3 简要更新
+### 🆕 v1.0.4 简要更新
 
-- ✅ 修复 Windows 下 `tagSuggestions` 偶发空白
-- 🖼️ 新增 favicon 缓存与异步渲染，降低 403/502/CORS 导致的图标缺失与报错
-- 📦 打包脚本自动读取版本号，生成 `auto-tree-tabs-v<version>.zip`
+- 🌙 修复搜索框内已输入标签在深色模式下的显示问题
+- 🌓 Popup 标题图标按系统深色/浅色模式自动切换
+- 🎨 优化深色模式下的界面一致性
 
 > 说明：为提升图标稳定性，扩展可能会请求站点的 favicon 资源用于显示与缓存（不上传用户数据）。
 

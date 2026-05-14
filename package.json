@@ -1,6 +1,6 @@
 {
   "name": "autotreetabs",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "一个类似 Tabs Outliner 的 Chrome 插件，能够跟踪用户点击链接并生成标签页树结构。",
   "main": "background.js",
   "scripts": {

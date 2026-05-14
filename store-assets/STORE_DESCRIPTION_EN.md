@@ -101,11 +101,11 @@ Browse normally → Extension auto-remembers scroll positions → Continue readi
 - **✅ Minimal Permissions** - Only requests necessary Chrome API permissions
 - **🎯 Transparent Operations** - All permission uses are publicly documented
 
-### 🆕 What’s New in v1.0.3
+### 🆕 What’s New in v1.0.4
 
-- ✅ Fixed `tagSuggestions` occasionally being empty on Chrome for Windows
-- 🖼️ Added favicon cache + async icon hydration to reduce missing icons/errors caused by 403/502/CORS
-- 📦 Packaging script now reads `manifest.json` version and outputs `auto-tree-tabs-v<version>.zip`
+- 🌙 Fixed selected search tags not matching dark mode
+- 🌓 Popup title icon now switches automatically for light/dark system themes
+- 🎨 Improved visual consistency in dark mode
 
 Note: To improve icon stability, the extension may request website favicon resources for display & caching (no personal data upload).
 
